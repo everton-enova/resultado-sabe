@@ -6,6 +6,13 @@ var HEADERS = {
   Inscricoes: ['InscricaoID','EventoID','EventoNome','DataHora','Nome','CPF','Telefone','Email','FuncaoID','Funcao','Tipo','Municipio','NTE','GrupoVagas','Status','ChaveRequisicao','DadosRequisicao'],
   Vagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
+/* Prazos acordados: EPT ate 06/10 e EJA ate 07/10, ambos as 23:59 (America/Bahia).
+   O segundo 59 mantem o minuto 23:59 inteiro dentro do prazo.
+   Abertura fica em branco de proposito: preencha-a e mude Status para ABERTO ao liberar. */
+var EVENTOS_PADRAO = [
+  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-06T23:59:59-03:00',250,1],
+  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-07T23:59:59-03:00',250,1]
+];
 function database_() {
   var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (!id) throw new Error('SPREADSHEET_ID ausente');
@@ -86,8 +93,7 @@ function prepararPlanilha() {
     sheet.setFrozenRows(1);
     sheet.setColumnWidths(1,HEADERS[name].length,160);
     if (name === 'Eventos') {
-      var events = [ ['ept','EPT','2026-10-07','','','RASCUNHO','','',250,1], ['eja','EJA','2026-10-08','','','RASCUNHO','','',250,1] ];
-      sheet.getRange(2,1,2,10).setNumberFormat('@').setValues(events);
+      sheet.getRange(2,1,EVENTOS_PADRAO.length,10).setNumberFormat('@').setValues(EVENTOS_PADRAO);
     }
     if (name === 'Funcoes') {
       var roles = [];

@@ -23,6 +23,7 @@
           <div class="info-item"><span class="info-icon" aria-hidden="true">▦</span><div><strong>Data</strong><span id="event-date">7 e 8 de outubro de 2026</span></div></div>
           <div class="info-item"><span class="info-icon" aria-hidden="true">◷</span><div><strong>Horário</strong><span id="event-time">A divulgar</span></div></div>
           <div class="info-item"><span class="info-icon" aria-hidden="true">⌖</span><div><strong>Local</strong><span id="event-place">A divulgar</span></div></div>
+          <div class="info-item" id="deadline-item" hidden><span class="info-icon" aria-hidden="true">◴</span><div><strong>Inscrições até</strong><span id="event-deadline"></span></div></div>
         </div>
         <p class="left-note">Escolha o evento e preencha seus dados.<br>Você pode participar dos dois encontros.</p>
       </div>
@@ -43,6 +44,7 @@
           <div class="step" id="selected-label"></div>
           <h2 id="form-title" tabindex="-1">Formulário de inscrição</h2>
           <p class="lead">Selecione sua função e preencha os dados.</p>
+          <div id="countdown" class="countdown" hidden><p class="countdown-label" id="countdown-label"></p><div class="countdown-clock" id="countdown-clock" aria-hidden="true"><span><strong id="cd-dias">00</strong><small>dias</small></span><span><strong id="cd-horas">00</strong><small>horas</small></span><span><strong id="cd-minutos">00</strong><small>min</small></span><span><strong id="cd-segundos">00</strong><small>seg</small></span></div></div>
           <p id="form-status" class="notice" role="status"></p>
           <form id="form" novalidate>
             <div class="field"><label for="nome">Nome completo <span>*</span></label><input id="nome" name="nome" autocomplete="name" maxlength="150" placeholder="Seu nome completo" required><span class="field-error" id="nome-error"></span></div>

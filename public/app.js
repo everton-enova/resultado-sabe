@@ -1,8 +1,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const defaults = [
-  {id:'ept',nome:'EPT',data:'2026-10-07',limite:250},
-  {id:'eja',nome:'EJA',data:'2026-10-08',limite:250}
+  {id:'ept',nome:'EPT',data:'2026-10-07',limite:250,encerramento:'2026-10-06T23:59:59-03:00'},
+  {id:'eja',nome:'EJA',data:'2026-10-08',limite:250,encerramento:'2026-10-07T23:59:59-03:00'}
 ];
 const labels = {ABERTO:'Inscrições abertas',FECHADO:'Inscrições em preparação',EM_BREVE:'Inscrições em breve',ENCERRADO:'Inscrições encerradas',ESGOTADO:'Vagas preenchidas'};
 let events = defaults.map(e=>({...e,estado:'FECHADO',funcoes:[],municipiosLotados:[]}));
@@ -19,7 +19,23 @@ function applyTheme(id) {
   const meta = document.querySelector('meta[name=theme-color]');
   if (meta) meta.content = themes[id] || neutral;
 }
-function show(section) { for(const id of ['selection','registration','success']) $(id).hidden = id !== section; }
+function deadlineAt(event) { const time = Date.parse(event?.encerramento || ''); return Number.isFinite(time) ? time : null; }
+function deadlineLabel(event) {
+  const time = deadlineAt(event); if (time === null) return '';
+  const when = new Date(time), zone = {timeZone:'America/Bahia'};
+  return when.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',...zone}) +
+    ' às ' + when.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',...zone});
+}
+function shortDeadline(event) {
+  const time = deadlineAt(event); if (time === null) return '';
+  const when = new Date(time), zone = {timeZone:'America/Bahia'};
+  return 'Inscrições até ' + when.toLocaleDateString('pt-BR',{day:'numeric',month:'short',...zone}).replace('.','') +
+    ', ' + when.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',...zone});
+}
+function show(section) {
+  for(const id of ['selection','registration','success']) $(id).hidden = id !== section;
+  if (section !== 'registration') stopCountdown();
+}
 function option(select, value, name, disabled=false) { const o = new Option(name,value); o.disabled=disabled; select.add(o); }
 function resetSelect(id, placeholder) { $(id).replaceChildren(); option($(id),'',placeholder); }
 function usable(role) { return selected.estado !== 'ABERTO' || role.disponiveis > 0; }
@@ -31,11 +47,38 @@ function drawEvents() {
     const detail=document.createElement('span'); detail.className='event-details';
     const day=document.createElement('span'); day.className='event-day'; day.textContent=dateLabel(event.data);
     const status=document.createElement('span'); status.className='event-state'; status.textContent=labels[event.estado] || labels.FECHADO;
+    const limit=document.createElement('span'); limit.className='event-deadline'; limit.textContent=shortDeadline(event); limit.hidden=!limit.textContent;
     const arrow=document.createElement('span'); arrow.className='event-arrow'; arrow.textContent='→'; arrow.setAttribute('aria-hidden','true');
-    detail.append(day,status); button.append(code,detail,arrow); button.addEventListener('click',()=>choose(event.id)); $('event-options').append(button);
+    detail.append(day,status,limit); button.append(code,detail,arrow); button.addEventListener('click',()=>choose(event.id)); $('event-options').append(button);
   }
   $('event-options').setAttribute('aria-busy',String(loading));
 }
+let ticker = null;
+function stopCountdown() { if(ticker){clearInterval(ticker);ticker=null;} }
+function pad(value) { return String(value).padStart(2,'0'); }
+function renderCountdown() {
+  const time = deadlineAt(selected);
+  if (time === null) { $('countdown').hidden = true; return; }
+  const left = time - Date.now();
+  $('countdown').hidden = false;
+  $('countdown').classList.toggle('is-over', left <= 0);
+  $('countdown').classList.toggle('is-soon', left > 0 && left <= 864e5);
+  $('countdown-clock').hidden = left <= 0;
+  if (left <= 0) {
+    $('countdown-label').textContent = 'Prazo encerrado em ' + deadlineLabel(selected) + '.';
+    stopCountdown();
+    // O relógio do visitante é apenas indicativo; quem recusa o envio é o servidor.
+    if (selected.estado === 'ABERTO') { selected.estado = 'ENCERRADO'; updateState(); }
+    return;
+  }
+  $('countdown-label').textContent = 'Inscrições até ' + deadlineLabel(selected);
+  const total = Math.floor(left/1000);
+  $('cd-dias').textContent = pad(Math.floor(total/86400));
+  $('cd-horas').textContent = pad(Math.floor(total%86400/3600));
+  $('cd-minutos').textContent = pad(Math.floor(total%3600/60));
+  $('cd-segundos').textContent = pad(total%60);
+}
+function startCountdown() { stopCountdown(); renderCountdown(); if(deadlineAt(selected)!==null) ticker=setInterval(renderCountdown,1000); }
 function updateState() {
   const open = connected && selected?.estado === 'ABERTO';
   $('submit').disabled = !open || busy;
@@ -63,7 +106,8 @@ function choose(id) {
   if(selected.funcoes.some(f=>f.tipo==='NTE' && usable(f))) option($('funcao'),'NTE','NTE');
   if(selected.funcoes.some(f=>f.tipo==='MUNICIPAL' && usable(f))) option($('funcao'),'MUNICIPAL','Secretaria Municipal');
   selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL').forEach(f=>option($('funcao'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
-  changeRole(); show('registration'); updateState(); $('form-title').focus();
+  $('event-deadline').textContent=deadlineLabel(selected); $('deadline-item').hidden=!deadlineLabel(selected);
+  changeRole(); show('registration'); startCountdown(); updateState(); $('form-title').focus();
 }
 function changeRole() {
   for(const id of ['municipal','municipio','nte','nte-funcao']) { $(id+'-field').hidden=true; $(id).required=false; resetSelect(id,'Selecione uma opção'); }
@@ -92,6 +136,7 @@ function back() {
   $('event-title').textContent='EPT & EJA'; $('event-date').textContent='7 e 8 de outubro de 2026';
   $('event-time').textContent='A divulgar'; $('event-place').textContent='A divulgar';
   $('event-intro').textContent='Dois eventos. Um espaço para conhecer e compartilhar os resultados.';
+  $('deadline-item').hidden=true;
   $('selection-title').focus();
 }
 $('back').addEventListener('click',back); $('another').addEventListener('click',()=>{back();load();});
