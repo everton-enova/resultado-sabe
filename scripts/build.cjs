@@ -7,7 +7,12 @@ const EVENTOS = {
   ept: { nome: 'EPT', cor: '#1a3a8a', linha: 'Educação Profissional e Tecnológica · SABE 2026', rodape: 'SABE 2026' },
   eja: { nome: 'EJA', cor: '#a32020', linha: 'Educação de Jovens e Adultos · SABE 2025/2026', rodape: 'SABE 2025/2026' }
 };
-const evento = String(process.env.EVENTO || 'ept').toLowerCase();
+/* Em producao EVENTO e obrigatorio: sem isso, esquecer a variavel no projeto do EJA
+   publicaria o site do EPT no dominio errado, sem erro nenhum. Localmente, ept e o padrao. */
+const naVercel = Boolean(process.env.VERCEL || process.env.CI);
+const informado = String(process.env.EVENTO || '').trim().toLowerCase();
+if (naVercel && !informado) throw new Error('EVENTO ausente. Defina EVENTO=ept ou EVENTO=eja nas variaveis do projeto.');
+const evento = informado || 'ept';
 if (!EVENTOS[evento]) throw new Error(`EVENTO invalido: ${process.env.EVENTO}. Use ept ou eja.`);
 const { nome, cor, linha, rodape } = EVENTOS[evento];
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });

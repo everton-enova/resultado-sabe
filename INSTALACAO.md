@@ -138,8 +138,10 @@ Em *Settings → Environment Variables*, os três valores:
 `data-theme` já corretos, então o visitante nunca vê a cor do outro evento piscando antes
 do JavaScript rodar. Título, sigla, subtítulo e rodapé também são gravados aí.
 
-Se `EVENTO` vier errado ou vazio, **a build falha de propósito**, com a mensagem
-`EVENTO invalido`. É melhor o deploy parar do que publicar o site do EJA no domínio do EPT.
+**Defina `EVENTO` antes do primeiro deploy.** Na Vercel, a build falha de propósito se a
+variável estiver ausente (`EVENTO ausente`) ou com valor desconhecido (`EVENTO invalido`).
+É melhor o deploy parar do que publicar o site do EPT no domínio do EJA sem ninguém notar.
+Fora da Vercel, rodando na sua máquina, o padrão é `ept`.
 
 Em *Settings → Domains*, defina o domínio de cada projeto. O `.vercel.app` sai do nome do
 projeto, então nomeie os projetos como os domínios acima.
