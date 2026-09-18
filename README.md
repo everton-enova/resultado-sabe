@@ -55,7 +55,7 @@ Na aba **Eventos**, já serão criadas as linhas `ept` e `eja` com status `RASCU
 | Data | Texto `2026-10-07` / `2026-10-08` |
 | Local / Horario | Informações reais do evento; vazios aparecem como “A divulgar” |
 | Abertura | Texto no formato `AAAA-MM-DDTHH:mm:ss-03:00`. Fica **vazia** na criação: preencha-a ao liberar as inscrições |
-| Encerramento | Já criada com o prazo acordado: EPT `2026-10-06T23:59:59-03:00` e EJA `2026-10-07T23:59:59-03:00`. O segundo `59` mantém o minuto 23:59 inteiro dentro do prazo |
+| Encerramento | Já criada com o prazo acordado para os dois eventos: `2026-10-05T23:59:59-03:00`. O segundo `59` mantém o minuto 23:59 inteiro dentro do prazo |
 | Status | `RASCUNHO` até concluir os testes; depois `ABERTO`. Qualquer outro valor impede novas inscrições |
 | LimiteTotal | Inicialmente 250 por evento; editável |
 | LimitePorMunicipio | Inicialmente 1, herdado da referência para representantes municipais; editável por evento |

@@ -6,14 +6,14 @@ var HEADERS = {
   Inscricoes: ['InscricaoID','EventoID','EventoNome','DataHora','Nome','CPF','Telefone','Email','FuncaoID','Funcao','Tipo','Municipio','NTE','GrupoVagas','Status','ChaveRequisicao','DadosRequisicao'],
   Vagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
-/* Prazos acordados: EPT ate 06/10 e EJA ate 07/10, ambos as 23:59 (America/Bahia).
+/* Prazo acordado: os dois eventos encerram em 05/10 as 23:59 (America/Bahia).
    O segundo 59 mantem o minuto 23:59 inteiro dentro do prazo.
    Abertura fica em branco de proposito: preencha-a e mude Status para ABERTO ao liberar. */
 /* LimiteTotal acompanha a soma das cotas do evento (271 no EPT, 265 no EJA, que nao recebe
    a linha de professores de EPT). Um teto menor que a soma bloquearia inscricoes com vaga livre. */
 var EVENTOS_PADRAO = [
-  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-06T23:59:59-03:00',271,1],
-  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-07T23:59:59-03:00',265,1]
+  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-05T23:59:59-03:00',271,1],
+  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-05T23:59:59-03:00',265,1]
 ];
 /* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
 var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'] };

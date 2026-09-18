@@ -1,8 +1,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const defaults = [
-  {id:'ept',nome:'EPT',data:'2026-10-07',limite:250,encerramento:'2026-10-06T23:59:59-03:00'},
-  {id:'eja',nome:'EJA',data:'2026-10-08',limite:250,encerramento:'2026-10-07T23:59:59-03:00'}
+  {id:'ept',nome:'EPT',data:'2026-10-07',limite:250,encerramento:'2026-10-05T23:59:59-03:00'},
+  {id:'eja',nome:'EJA',data:'2026-10-08',limite:250,encerramento:'2026-10-05T23:59:59-03:00'}
 ];
 const labels = {ABERTO:'Inscrições abertas',FECHADO:'Inscrições em preparação',EM_BREVE:'Inscrições em breve',ENCERRADO:'Inscrições encerradas',ESGOTADO:'Vagas preenchidas'};
 let events = defaults.map(e=>({...e,estado:'FECHADO',funcoes:[],municipiosLotados:[]}));
