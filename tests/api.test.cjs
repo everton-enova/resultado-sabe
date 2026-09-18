@@ -23,7 +23,7 @@ test('API repete quando o redirecionamento do Apps Script transforma o POST em G
     // Duas respostas ruins seguidas nao viram resposta de negocio: o visitante recebe falha de conexao.
     chamadas=0;global.fetch=async()=>{chamadas++;return {ok:true,json:async()=>({success:false,code:'METHOD_NOT_ALLOWED'})};};
     res=response();await handler({method:'GET',headers:{}},res);
-    assert.equal(chamadas,2);assert.equal(res.statusCode,503);assert.equal(res.data.code,'CONNECTION_ERROR');
+    assert.equal(chamadas,3);assert.equal(res.statusCode,503);assert.equal(res.data.code,'CONNECTION_ERROR');
     // Falha de rede na primeira tentativa tambem e repetida.
     chamadas=0;global.fetch=async()=>{chamadas++;if(chamadas===1)throw new Error('rede');return {ok:true,json:async()=>({success:true,eventos:[],municipios:[]})};};
     res=response();await handler({method:'GET',headers:{}},res);

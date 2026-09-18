@@ -38,10 +38,14 @@ function table_(name) {
 }
 function number_(v) { return String(v).trim() === '' ? NaN : Number(v); }
 function config_() {
+  var funcoes = table_('Funcoes').map(function (r) { return { eventoId:r.EventoID, id:r.FuncaoID, nome:r.Nome, tipo:r.Tipo, nte:r.NTE, limite:number_(r.Limite), grupo:r.GrupoVagas, ativa:r.Ativa === 'SIM', setor:r.Setor || '' }; });
+  // Os 417 municipios so sao lidos quando alguma funcao municipal existe: sem isso, seriam
+  // 417 linhas percorridas em toda requisicao para nada.
+  var precisaMunicipios = funcoes.some(function (f) { return f.tipo === 'MUNICIPAL' && f.ativa; });
   var config = {
     eventos: table_('Eventos').map(function (r) { return { id:r.EventoID, nome:r.Nome, data:r.Data, local:r.Local, horario:r.Horario, status:r.Status, abertura:r.Abertura, encerramento:r.Encerramento, limite:number_(r.LimiteTotal), limiteMunicipio:number_(r.LimitePorMunicipio) }; }),
-    funcoes: table_('Funcoes').map(function (r) { return { eventoId:r.EventoID, id:r.FuncaoID, nome:r.Nome, tipo:r.Tipo, nte:r.NTE, limite:number_(r.Limite), grupo:r.GrupoVagas, ativa:r.Ativa === 'SIM', setor:r.Setor || '' }; }),
-    municipios: table_('MunicipiosNTE').map(function (r) { return { nome:r.Municipio, nte:r.NTE }; })
+    funcoes: funcoes,
+    municipios: precisaMunicipios ? table_('MunicipiosNTE').map(function (r) { return { nome:r.Municipio, nte:r.NTE }; }) : []
   };
   var ids = {};
   config.eventos.forEach(function (e) { if (!e.id || ids[e.id]) throw new Error('EventoID duplicado ou ausente'); ids[e.id] = true; });
@@ -50,7 +54,12 @@ function config_() {
 function registrations_() {
   return table_('Inscricoes').map(function (r) { return { id:r.InscricaoID, eventoId:r.EventoID, eventoNome:r.Evento, cpf:r.CPF, funcaoId:r.FuncaoID, grupoVagas:r.GrupoVagas, municipio:r.Municipio, tipo:r.Tipo, status:r.Status, requestId:r.ChaveRequisicao, canonical:r.DadosRequisicao }; });
 }
-function json_(data) { return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON); }
+function jsonTexto_(texto) { return ContentService.createTextOutput(texto).setMimeType(ContentService.MimeType.JSON); }
+function json_(data) { return jsonTexto_(JSON.stringify(data)); }
+/* A leitura de configuracao e identica para todo visitante e cara: le Eventos, Funcoes e
+   Inscricoes inteiras. Guardar por alguns segundos derruba o numero de execucoes, que e o
+   que faz o Apps Script enfileirar requisicao ate estourar o tempo do site. */
+var CACHE_CONFIG = 'config-publica', CACHE_SEGUNDOS = 15;
 function doGet() { return json_({ success:false, code:'METHOD_NOT_ALLOWED', message:'Use a integração do site.' }); }
 function doPost(e) {
   try {
@@ -59,8 +68,12 @@ function doPost(e) {
     var secret = PropertiesService.getScriptProperties().getProperty('API_SECRET');
     if (!secret || secret.length < 32 || payload.secret !== secret) return json_({ success:false, code:'UNAUTHORIZED', message:'Integração não autorizada.' });
     if (payload.action === 'config') {
+      var cache = CacheService.getScriptCache(), pronto = cache.get(CACHE_CONFIG);
+      if (pronto) return jsonTexto_(pronto);
       var config = config_(), rows = registrations_();
-      return json_({ success:true, eventos:config.eventos.map(function (event) { return RegistrationCore.publicEvent(event, config.funcoes, rows, Date.now()); }), municipios:config.municipios.map(function (m) { return m.nome; }) });
+      var texto = JSON.stringify({ success:true, eventos:config.eventos.map(function (event) { return RegistrationCore.publicEvent(event, config.funcoes, rows, Date.now()); }), municipios:config.municipios.map(function (m) { return m.nome; }) });
+      cache.put(CACHE_CONFIG, texto, CACHE_SEGUNDOS);
+      return jsonTexto_(texto);
     }
     if (payload.action !== 'inscrever') return json_({ success:false, code:'INVALID_ACTION', message:'Ação inválida.' });
     var lock = LockService.getScriptLock();
@@ -83,6 +96,8 @@ function doPost(e) {
       var row = header.map(function (h) { return values[h] === undefined ? '' : "'" + String(values[h]); });
       sheet.getRange(sheet.getLastRow()+1,1,1,row.length).setNumberFormat('@').setValues([row]);
       SpreadsheetApp.flush();
+      // A vaga mudou: a proxima leitura precisa ser real, nao a guardada.
+      try { CacheService.getScriptCache().remove(CACHE_CONFIG); } catch (_) {}
       // Painel em tempo real. Falha aqui nunca invalida uma inscricao ja gravada.
       try { var atual = config_(), linhas = registrations_(); painelVagas_(atual, linhas); monitoramento_(atual, linhas); } catch (_) {}
       return json_({ success:true, protocolo:r.id, evento:r.eventoNome });
@@ -136,7 +151,9 @@ function funcoesDoRotulo_(rotulo, funcoes) {
     var papel = PAPEIS_NTE[alvo];
     return funcoes.filter(function (f) { return f.tipo === 'NTE' && normal_(f.nome) === papel.toLowerCase(); });
   }
-  var diretas = funcoes.filter(function (f) { return normal_(f.nome) === alvo; });
+  var diretas = funcoes.filter(function (f) {
+    return normal_(f.nome) === alvo || (f.setor && normal_(f.setor + '/' + f.nome) === alvo);
+  });
   if (diretas.length) return diretas;
   if (alvo.indexOf('unidades escolares de salvador') >= 0)
     return funcoes.filter(function (f) { return f.id === 'gestao-escolar-salvador'; });
@@ -201,7 +218,7 @@ function linhasMonitoramento_(funcoes) {
       linhas.push({ rotulo: PLURAL_NTE[chave] || (f.nome + ' dos NTE'),
         funcoes: funcoes.filter(function (g) { return g.tipo === 'NTE' && normal_(g.nome) === chave; }) });
     } else {
-      linhas.push({ rotulo: f.nome, funcoes: [f] });
+      linhas.push({ rotulo: f.setor ? f.setor + '/' + f.nome : f.nome, funcoes: [f] });
     }
   });
   return linhas;
@@ -281,7 +298,9 @@ function criarGatilhos() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'atualizarPainelVagas') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(1).create();
+  // Cinco minutos: a atualizacao que importa acontece na propria inscricao; este gatilho so
+  // cobre edicao manual da planilha, e de minuto em minuto ele competia com o site.
+  ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(5).create();
 }
 /* Gera o segredo da integracao e ja grava em API_SECRET, para nao depender de terminal.
    Rode pelo editor do Apps Script (Executar) e leia o valor no registro de execucao.

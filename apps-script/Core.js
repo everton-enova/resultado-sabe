@@ -99,7 +99,8 @@ var RegistrationCore = (function () {
     var group = role.grupo || role.id;
     if (active.filter(function (r) { return r.grupoVagas === group; }).length >= role.limite) fail('ROLE_SOLD_OUT', 'As vagas desta função foram preenchidas.');
     if (role.tipo === 'MUNICIPAL' && active.filter(function (r) { return r.tipo === 'MUNICIPAL' && r.municipio === data.municipio; }).length >= event.limiteMunicipio) fail('MUNICIPALITY_SOLD_OUT', 'Este município já atingiu seu limite de representantes.');
-    return { record: Object.assign({}, data, { eventoNome: event.nome, funcao: role.nome, tipo: role.tipo, setor: role.setor || '',
+    return { record: Object.assign({}, data, { eventoNome: event.nome,
+      funcao: role.setor ? role.setor + '/' + role.nome : role.nome, tipo: role.tipo, setor: role.setor || '',
       nte: role.tipo === 'NTE' ? role.nte : (territory ? territory.nte : ''),
       grupoVagas: group, canonical: canonical, status: 'CONFIRMADA' }) };
   }

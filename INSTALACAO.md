@@ -66,11 +66,12 @@ Se alguma dessas quatro abas já existir com conteúdo antigo, renomeie a antiga
 ## 4. Ligar a atualização automática
 
 Menu **Inscrições EPT / EJA → Ativar atualização automática**. Isso instala um gatilho
-de um minuto que recalcula o painel.
+de cinco minutos que recalcula o painel.
 
 O painel também é recalculado imediatamente a cada inscrição confirmada, dentro do
-mesmo bloqueio que grava a linha. O gatilho é rede de segurança, para o caso de uma
-edição manual na planilha.
+mesmo bloqueio que grava a linha — essa é a atualização que importa. O gatilho é rede
+de segurança, para o caso de edição manual na planilha, e por isso é espaçado: de minuto
+em minuto ele competia com o site pelas execuções do Apps Script.
 
 ### As duas visões
 

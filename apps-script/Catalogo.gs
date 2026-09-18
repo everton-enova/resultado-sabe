@@ -1,6 +1,7 @@
 // Funções e cotas conforme a aba Vagas da planilha base.
 // NTE: uma vaga por NTE em cada função, somando os 27 de cada linha do painel.
-// "setor": funções do mesmo setor viram uma opção única que abre a escolha da unidade.
+// "setor": funções do mesmo setor viram uma opção única que abre a escolha da diretoria.
+//          O nome gravado e exibido nos painéis é setor/nome, como SGINF/DIE.
 // "limites": cota diferente por evento; "limite": mesma cota nos dois.
 var CATALOGO_FUNCOES = [
   {
@@ -608,21 +609,21 @@ var CATALOGO_FUNCOES = [
   },
   {
     "id": "sginf-die",
-    "nome": "SGINF/DIE",
+    "nome": "DIE",
     "tipo": "INSTITUCIONAL",
     "limite": 13,
     "setor": "SGINF"
   },
   {
     "id": "sginf-dai",
-    "nome": "SGINF/DAI",
+    "nome": "DAI",
     "tipo": "INSTITUCIONAL",
     "limite": 4,
     "setor": "SGINF"
   },
   {
     "id": "sginf-diroe",
-    "nome": "SGINF/DIROE",
+    "nome": "DIROE",
     "tipo": "INSTITUCIONAL",
     "limite": 4,
     "setor": "SGINF"

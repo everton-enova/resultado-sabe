@@ -22,7 +22,9 @@ module.exports = async function handler(req, res) {
     } catch (_) { return send(400, { success: false, message: 'Envio inválido. Revise os campos.' }); }
   }
   const payload = JSON.stringify({ secret, action: req.method === 'GET' ? 'config' : 'inscrever', data: body });
-  const inicio = Date.now(), PRAZO = 25000;
+  // O Apps Script responde em poucos segundos quando responde; quando trava, nao volta.
+  // Prazo curto por tentativa faz a chamada travada falhar cedo e sobrar tempo para repetir.
+  const inicio = Date.now(), PRAZO = 24000, POR_TENTATIVA = 9000;
   const tentar = async prazo => {
     const response = await fetch(url, {
       method: 'POST', redirect: 'follow', signal: AbortSignal.timeout(prazo),
@@ -37,11 +39,11 @@ module.exports = async function handler(req, res) {
     let result = null;
     // O Apps Script as vezes responde ao POST com um redirecionamento que vira GET, e cai no doGet.
     // Repetir e seguro: o requestId torna a inscricao idempotente e a leitura de config nao tem efeito.
-    for (let tentativa = 0; tentativa < 2 && !result; tentativa++) {
+    for (let tentativa = 0; tentativa < 3 && !result; tentativa++) {
       const restante = PRAZO - (Date.now() - inicio);
-      if (restante < 3000) break;
+      if (restante < 2000) break;
       let atual;
-      try { atual = await tentar(restante); } catch (_) { continue; }
+      try { atual = await tentar(Math.min(POR_TENTATIVA, restante)); } catch (_) { continue; }
       if (atual.code !== 'METHOD_NOT_ALLOWED') result = atual;
     }
     if (!result) throw new Error();
