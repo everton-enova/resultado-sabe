@@ -1,0 +1,6 @@
+reference/
+qa/
+tests/
+.env
+.env.*
+*.zip
