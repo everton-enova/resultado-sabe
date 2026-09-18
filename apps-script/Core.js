@@ -68,7 +68,7 @@ var RegistrationCore = (function () {
     result.disponiveis = Math.max(0, event.limite - active.length);
     result.funcoes = selected.map(function (f) {
       var used = active.filter(function (r) { return r.grupoVagas === (f.grupo || f.id); }).length;
-      return { id: f.id, nome: f.nome, tipo: f.tipo, nte: f.nte, disponiveis: Math.max(0, Math.min(f.limite - used, result.disponiveis)) };
+      return { id: f.id, nome: f.nome, tipo: f.tipo, nte: f.nte, setor: f.setor || '', disponiveis: Math.max(0, Math.min(f.limite - used, result.disponiveis)) };
     });
     var municipalities = {};
     active.filter(function (r) { return r.tipo === 'MUNICIPAL'; }).forEach(function (r) { municipalities[r.municipio] = (municipalities[r.municipio] || 0) + 1; });

@@ -1,7 +1,7 @@
 /* Adicione Core.js e Catalogo.gs ao MESMO projeto Apps Script. */
 var HEADERS = {
   Eventos: ['EventoID','Nome','Data','Local','Horario','Status','Abertura','Encerramento','LimiteTotal','LimitePorMunicipio'],
-  Funcoes: ['EventoID','FuncaoID','Nome','Tipo','NTE','Limite','GrupoVagas','Ativa'],
+  Funcoes: ['EventoID','FuncaoID','Nome','Tipo','NTE','Limite','GrupoVagas','Ativa','Setor'],
   MunicipiosNTE: ['Municipio','NTE'],
   Inscricoes: ['InscricaoID','EventoID','EventoNome','DataHora','Nome','CPF','Telefone','Email','FuncaoID','Funcao','Tipo','Municipio','NTE','GrupoVagas','Status','ChaveRequisicao','DadosRequisicao'],
   Vagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
@@ -13,6 +13,8 @@ var EVENTOS_PADRAO = [
   ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-06T23:59:59-03:00',250,1],
   ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-07T23:59:59-03:00',250,1]
 ];
+/* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
+var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'] };
 function database_() {
   var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (!id) throw new Error('SPREADSHEET_ID ausente');
@@ -23,7 +25,7 @@ function table_(name) {
   if (!sheet) throw new Error('Aba ausente: ' + name);
   var values = sheet.getDataRange().getDisplayValues();
   var header = values.shift();
-  HEADERS[name].forEach(function (h) { if (header.indexOf(h) < 0) throw new Error('Coluna ausente: ' + h); });
+  HEADERS[name].forEach(function (h) { if (header.indexOf(h) < 0 && (COLUNAS_OPCIONAIS[name] || []).indexOf(h) < 0) throw new Error('Coluna ausente: ' + h); });
   return values.filter(function (r) { return r.some(function (v) { return v !== ''; }); }).map(function (row) {
     var record = {};
     header.forEach(function (h,i) { record[h] = row[i]; });
@@ -34,7 +36,7 @@ function number_(v) { return String(v).trim() === '' ? NaN : Number(v); }
 function config_() {
   var config = {
     eventos: table_('Eventos').map(function (r) { return { id:r.EventoID, nome:r.Nome, data:r.Data, local:r.Local, horario:r.Horario, status:r.Status, abertura:r.Abertura, encerramento:r.Encerramento, limite:number_(r.LimiteTotal), limiteMunicipio:number_(r.LimitePorMunicipio) }; }),
-    funcoes: table_('Funcoes').map(function (r) { return { eventoId:r.EventoID, id:r.FuncaoID, nome:r.Nome, tipo:r.Tipo, nte:r.NTE, limite:number_(r.Limite), grupo:r.GrupoVagas, ativa:r.Ativa === 'SIM' }; }),
+    funcoes: table_('Funcoes').map(function (r) { return { eventoId:r.EventoID, id:r.FuncaoID, nome:r.Nome, tipo:r.Tipo, nte:r.NTE, limite:number_(r.Limite), grupo:r.GrupoVagas, ativa:r.Ativa === 'SIM', setor:r.Setor || '' }; }),
     municipios: table_('MunicipiosNTE').map(function (r) { return { nome:r.Municipio, nte:r.NTE }; })
   };
   var ids = {};
@@ -97,8 +99,8 @@ function prepararPlanilha() {
     }
     if (name === 'Funcoes') {
       var roles = [];
-      ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) { roles.push([id,f.id,f.nome,f.tipo,f.nte || '',0,f.grupo || f.id,'SIM']); }); });
-      sheet.getRange(2,1,roles.length,8).setValues(roles);
+      ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) { roles.push([id,f.id,f.nome,f.tipo,f.nte || '',f.limite || 0,f.grupo || f.id,'SIM',f.setor || '']); }); });
+      sheet.getRange(2,1,roles.length,9).setValues(roles);
     }
     if (name === 'MunicipiosNTE') {
       sheet.getRange(2,1,CATALOGO_MUNICIPIOS.length,2).setValues(CATALOGO_MUNICIPIOS.map(function (m) { return [m.nome,m.nte]; }));

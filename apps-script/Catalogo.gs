@@ -1,4 +1,5 @@
 // Catálogos públicos extraídos do repositório de referência. Limites antigos não são importados.
+// Funções com o mesmo "setor" viram uma única opção que abre a escolha da unidade.
 var CATALOGO_FUNCOES = [
   {
     "id": "instituicao-01",
@@ -21,9 +22,25 @@ var CATALOGO_FUNCOES = [
     "tipo": "INSTITUCIONAL"
   },
   {
-    "id": "instituicao-05",
-    "nome": "SGINF",
-    "tipo": "INSTITUCIONAL"
+    "id": "sginf-dai",
+    "nome": "DAI",
+    "tipo": "INSTITUCIONAL",
+    "setor": "SGINF",
+    "limite": 4
+  },
+  {
+    "id": "sginf-die",
+    "nome": "DIE",
+    "tipo": "INSTITUCIONAL",
+    "setor": "SGINF",
+    "limite": 13
+  },
+  {
+    "id": "sginf-diroe",
+    "nome": "DIROE",
+    "tipo": "INSTITUCIONAL",
+    "setor": "SGINF",
+    "limite": 4
   },
   {
     "id": "instituicao-06",

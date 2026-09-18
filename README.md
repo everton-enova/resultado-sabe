@@ -68,6 +68,7 @@ Na aba **Funcoes**, cada evento possui suas próprias linhas:
 
 - `Limite`: quantidade permitida. Todas as cotas começam em **0**, aguardando sua distribuição; zero fecha a opção. Campo vazio/inválido fecha a configuração do evento.
 - `Ativa`: use `SIM` para disponibilizar uma função; `NAO` para removê-la das opções.
+- `Setor`: agrupa funções sob uma opção só. Quem escolhe o setor no formulário recebe um segundo campo para a unidade. `SGINF` já vem dividida em `DAI` (4), `DIE` (13) e `DIROE` (4), cada uma com sua própria cota; a soma é o teto do setor, pois não há limite separado para ele. Deixe vazio para funções sem subdivisão. A coluna é opcional: planilhas criadas antes dela continuam funcionando e tratam o valor como vazio.
 - `GrupoVagas`: funções com o mesmo grupo compartilham a mesma cota. As duas funções municipais usam `representantes-municipais`; preencha o mesmo limite em ambas. Exemplo: 30 nas duas linhas significa **30 vagas compartilhadas**, não 60.
 - Funções de NTE têm linhas por número e função, permitindo exceções próprias. A exceção antiga do NTE 19 não é aplicada automaticamente.
 - O limite total do evento prevalece mesmo se a soma de cotas for maior que 250. Diminuir uma cota abaixo dos inscritos não cancela inscrições existentes; apenas impede novas entradas.

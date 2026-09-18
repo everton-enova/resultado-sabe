@@ -105,12 +105,26 @@ function choose(id) {
   resetSelect('funcao','Selecione sua função');
   if(selected.funcoes.some(f=>f.tipo==='NTE' && usable(f))) option($('funcao'),'NTE','NTE');
   if(selected.funcoes.some(f=>f.tipo==='MUNICIPAL' && usable(f))) option($('funcao'),'MUNICIPAL','Secretaria Municipal');
-  selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL').forEach(f=>option($('funcao'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
+  const institucionais=selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL'), setoresVistos=new Set();
+  for(const f of institucionais) {
+    if(!f.setor) { option($('funcao'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)); continue; }
+    if(setoresVistos.has(f.setor)) continue;
+    setoresVistos.add(f.setor);
+    // O setor vira uma opção só; as unidades aparecem no campo seguinte.
+    const livre=institucionais.some(u=>u.setor===f.setor && usable(u));
+    option($('funcao'),'SETOR:'+f.setor,f.setor+(livre?'':' — vagas preenchidas'),!livre);
+  }
   $('event-deadline').textContent=deadlineLabel(selected); $('deadline-item').hidden=!deadlineLabel(selected);
   changeRole(); show('registration'); startCountdown(); updateState(); $('form-title').focus();
 }
 function changeRole() {
-  for(const id of ['municipal','municipio','nte','nte-funcao']) { $(id+'-field').hidden=true; $(id).required=false; resetSelect(id,'Selecione uma opção'); }
+  for(const id of ['setor','municipal','municipio','nte','nte-funcao']) { $(id+'-field').hidden=true; $(id).required=false; resetSelect(id,'Selecione uma opção'); }
+  if($('funcao').value.startsWith('SETOR:')) {
+    const setor=$('funcao').value.slice(6);
+    $('setor-field').hidden=false; $('setor').required=true;
+    resetSelect('setor','Selecione a unidade do '+setor);
+    selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL' && f.setor===setor).forEach(f=>option($('setor'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
+  }
   if($('funcao').value==='MUNICIPAL') {
     $('municipal-field').hidden=false; $('municipal').required=true;
     selected.funcoes.filter(f=>f.tipo==='MUNICIPAL').forEach(f=>option($('municipal'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
@@ -157,6 +171,7 @@ $('form').addEventListener('submit',async e=>{
   if(!/^\d{10,11}$/.test(data.telefone))invalid('telefone','Informe um telefone com DDD.');
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))invalid('email','Informe um e-mail válido.');
   if(!data.funcaoId)invalid('funcao','Selecione sua função.');
+  if(data.funcaoId.startsWith('SETOR:')){data.funcaoId=$('setor').value;if(!data.funcaoId)invalid('setor','Selecione a unidade.');}
   if(data.funcaoId==='MUNICIPAL'){data.funcaoId=$('municipal').value;data.municipio=$('municipio').value;if(!data.funcaoId)invalid('municipal','Selecione sua função municipal.');if(!data.municipio)invalid('municipio','Selecione seu município.');}
   if(data.funcaoId==='NTE'){data.funcaoId=$('nte-funcao').value;if(!$('nte').value)invalid('nte','Selecione o NTE.');if(!data.funcaoId)invalid('nte-funcao','Selecione sua função no NTE.');}
   const first=document.querySelector('[aria-invalid=true]');if(first){first.focus();return;}
