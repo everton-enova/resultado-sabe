@@ -193,6 +193,23 @@ function criarGatilhos() {
   });
   ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(1).create();
 }
+/* Gera o segredo da integracao e ja grava em API_SECRET, para nao depender de terminal.
+   Rode pelo editor do Apps Script (Executar) e leia o valor no registro de execucao.
+   Nao vira item de menu de proposito: quem abre a planilha nao deveria ver o segredo. */
+function mostrarSegredo() {
+  var props = PropertiesService.getScriptProperties();
+  var segredo = props.getProperty('API_SECRET');
+  var novo = !segredo || segredo.length < 32;
+  if (novo) {
+    // Dois UUID sem hifen: 64 caracteres hexadecimais de origem aleatoria.
+    segredo = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+    props.setProperty('API_SECRET', segredo);
+  }
+  Logger.log((novo ? 'Segredo criado e salvo em API_SECRET.' : 'API_SECRET ja existia; reaproveitando.') +
+    ' Copie o valor abaixo para APPS_SCRIPT_SECRET na Vercel:');
+  Logger.log(segredo);
+  return segredo;
+}
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Ativar atualizacao automatica', 'criarGatilhos').addToUi();
 }

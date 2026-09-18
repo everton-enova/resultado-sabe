@@ -29,9 +29,27 @@ Ainda em **Configurações do projeto → Propriedades do script**:
 | `SPREADSHEET_ID` | o trecho entre `/d/` e `/edit` na URL da planilha |
 | `API_SECRET` | um segredo aleatório de 32 caracteres ou mais |
 
-Para gerar o segredo, rode no terminal `openssl rand -hex 24`. Guarde-o: o mesmo
-valor vai para a Vercel no passo 5. Não reaproveite senha de outro sistema e não
-comite esse valor no repositório.
+`SPREADSHEET_ID` você preenche à mão. O `API_SECRET` **não precisa de terminal**: no
+editor do Apps Script, escolha a função `mostrarSegredo` na barra de cima e clique em
+**Executar**. Ela gera um segredo de 64 caracteres, já grava na propriedade `API_SECRET`
+e mostra o valor no **registro de execução**, embaixo. Copie de lá para a Vercel no
+passo 5.
+
+Rodar de novo não troca o segredo: se já existir um válido, ela apenas mostra o mesmo
+valor. Para trocar de propósito, apague a propriedade `API_SECRET` antes e rode outra vez
+— lembrando de atualizar a Vercel junto, senão os dois lados deixam de se reconhecer.
+
+Se preferir gerar por fora: no PowerShell do Windows,
+`-join ((48..57)+(97..102) | Get-Random -Count 48 | % {[char]$_})`; no Mac ou Linux,
+`openssl rand -hex 24`.
+
+Esse segredo é o que autoriza o site a gravar na planilha. Não reaproveite senha de
+outro sistema, não coloque no repositório e não mande por mensagem.
+
+> **Antes de rodar:** a planilha está compartilhada como *qualquer pessoa com o link pode
+> editar*. Nessa configuração, qualquer um que tenha o link abre o editor do Apps Script e
+> lê o segredo — além de já poder ver os CPFs das abas de assinatura. Restrinja o
+> compartilhamento a pessoas específicas antes de seguir.
 
 ## 3. Criar as abas
 
