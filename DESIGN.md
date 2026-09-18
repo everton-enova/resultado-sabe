@@ -16,6 +16,7 @@ Fonte principal: `index.html`, `background.webp` e `brasao_estado.png` do reposi
 | Setor com unidades: SGINF → DAI/DIE/DIROE | Pedido do usuário | Mesma mecânica dos campos condicionais: o setor é uma opção só e abre o campo de unidade |
 | Monitoramento visual na planilha | Pedido do usuário | Aba própria com EJA e EPT lado a lado, nas cores do site, ocupação em porcentagem colorida; a aba Vagas do usuário recebe só Inscritos e Disponíveis |
 | Cotas da aba Vagas da planilha base | Planilha do usuário | 250 por evento; SUPROT e SUPED diferem entre EJA e EPT; NTE com uma vaga por NTE em cada função, sem campo de município |
+| Página 404 na identidade do site | Pedido do usuário | Painel preto com a fotografia dessaturada, botão para a inscrição e redirecionamento automático por `meta refresh` |
 | Foco visível, rótulos e erros vinculados | Refero Design, craft-details | Navegação com teclado, erros por campo e anúncio de status |
 | Vermelho de erro independente do tema | Acessibilidade | `--red` permanece fixo em campos inválidos, separado do vermelho do tema EJA |
 

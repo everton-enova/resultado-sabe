@@ -115,6 +115,8 @@ Referência oficial: [Web Apps do Google Apps Script](https://developers.google.
 
 Referência oficial: [Funções Node.js na Vercel](https://vercel.com/docs/functions/runtimes/node-js).
 
+Endereços inexistentes caem em `public/404.html`, que a Vercel serve automaticamente para rotas estáticas não encontradas. A página leva de volta à inscrição por botão e, em seis segundos, por `meta refresh` — o CSP do site bloqueia script inline, então o redirecionamento não usa JavaScript.
+
 ## Verificações
 
 ```sh
