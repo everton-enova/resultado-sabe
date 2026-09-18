@@ -22,6 +22,8 @@ Uma pessoa pode se inscrever nos dois eventos, uma vez em cada. O site preserva 
 
 Não há gravação em planilha até configurar a integração. Sem conexão, é possível conhecer os formulários, com envio desabilitado. Não há simulação de inscrição confirmada na interface de produção.
 
+São dois sites, um por evento (`seminariosabeept` e `seminariosabeeja`), publicados do mesmo repositório: a variável `EVENTO` da build define qual evento cada um atende. Os dois gravam na mesma planilha.
+
 Para ligar o formulário à planilha (Apps Script, gatilho e variáveis da Vercel), siga `INSTALACAO.md`.
 
 ## Ver a prévia no computador

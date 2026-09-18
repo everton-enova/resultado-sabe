@@ -113,6 +113,41 @@ Publique novamente o projeto para as variáveis entrarem em vigor.
 O segredo é conferido no servidor a cada requisição e nunca sai para o navegador; o
 site fala com o Apps Script pela função em `api/inscricoes.js`, não direto do browser.
 
+## 5b. Os dois sites na Vercel
+
+São **dois projetos** apontando para o mesmo repositório, a mesma planilha e o mesmo
+Apps Script. O que os diferencia é uma variável.
+
+| Projeto | Domínio | `EVENTO` |
+|---|---|---|
+| Seminário SABE EPT | `seminariosabeept.vercel.app` | `ept` |
+| Seminário SABE EJA | `seminariosabeeja.vercel.app` | `eja` |
+
+Em cada projeto, *Add New → Project → Import* do repositório `everton-enova/resultado-sabe`,
+branch `main`, Framework **Other**, Build Command `npm run build`, Output Directory `dist`.
+
+Em *Settings → Environment Variables*, os três valores:
+
+| Variável | EPT | EJA |
+|---|---|---|
+| `EVENTO` | `ept` | `eja` |
+| `APPS_SCRIPT_URL` | a mesma URL `/exec` | a mesma URL `/exec` |
+| `APPS_SCRIPT_SECRET` | o mesmo segredo | o mesmo segredo |
+
+`EVENTO` é lido durante a build e gravado na página: o `<html>` sai com `data-evento` e
+`data-theme` já corretos, então o visitante nunca vê a cor do outro evento piscando antes
+do JavaScript rodar. Título, sigla, subtítulo e rodapé também são gravados aí.
+
+Se `EVENTO` vier errado ou vazio, **a build falha de propósito**, com a mensagem
+`EVENTO invalido`. É melhor o deploy parar do que publicar o site do EJA no domínio do EPT.
+
+Em *Settings → Domains*, defina o domínio de cada projeto. O `.vercel.app` sai do nome do
+projeto, então nomeie os projetos como os domínios acima.
+
+As inscrições dos dois caem na mesma aba `Inscricoes`, cada uma com seu `Evento`, e o
+painel continua separando EJA e EPT. A regra de CPF único é por evento: a mesma pessoa
+pode se inscrever nos dois, usando um site de cada vez.
+
 ## 6. Abrir as inscrições
 
 Na aba `Eventos`, preencha `Abertura` no mesmo formato de `Encerramento`
@@ -124,9 +159,9 @@ formulário mas bloqueia o envio — de propósito, para dar para conferir tudo 
 
 ## 7. Conferir
 
-1. Abra o site: o aviso de indisponibilidade deve sumir e o contador aparecer.
+1. Abra **cada um dos dois sites**: o aviso de indisponibilidade deve sumir e o contador aparecer.
 2. Faça uma inscrição de teste.
-3. A linha deve aparecer na aba `Inscricoes` com `Evento` preenchido.
+3. A linha deve aparecer na aba `Inscricoes` com `Evento` preenchido — `EPT` ou `EJA`, conforme o site usado.
 4. O painel da aba `Vagas` deve somar 1 em `Inscritos` e descontar 1 em `Disponíveis`,
    na linha da função escolhida e na linha `TOTAL`.
 5. Apague a linha de teste e rode **Atualizar painel de vagas** para zerar.
