@@ -32,10 +32,7 @@ function shortDeadline(event) {
   return 'Inscrições até ' + when.toLocaleDateString('pt-BR',{day:'numeric',month:'short',...zone}).replace('.','') +
     ', ' + when.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',...zone});
 }
-function show(section) {
-  for(const id of ['selection','registration','success']) $(id).hidden = id !== section;
-  if (section !== 'registration') stopCountdown();
-}
+function show(section) { for(const id of ['selection','registration','success']) $(id).hidden = id !== section; }
 function option(select, value, name, disabled=false) { const o = new Option(name,value); o.disabled=disabled; select.add(o); }
 function resetSelect(id, placeholder) { $(id).replaceChildren(); option($(id),'',placeholder); }
 function usable(role) { return selected.estado !== 'ABERTO' || role.disponiveis > 0; }
@@ -52,33 +49,41 @@ function drawEvents() {
     detail.append(day,status,limit); button.append(code,detail,arrow); button.addEventListener('click',()=>choose(event.id)); $('event-options').append(button);
   }
   $('event-options').setAttribute('aria-busy',String(loading));
+  startCountdown();
 }
 let ticker = null;
-function stopCountdown() { if(ticker){clearInterval(ticker);ticker=null;} }
 function pad(value) { return String(value).padStart(2,'0'); }
-function renderCountdown() {
-  const time = deadlineAt(selected);
-  if (time === null) { $('countdown').hidden = true; return; }
-  const left = time - Date.now();
-  $('countdown').hidden = false;
-  $('countdown').classList.toggle('is-over', left <= 0);
-  $('countdown').classList.toggle('is-soon', left > 0 && left <= 864e5);
-  $('countdown-clock').hidden = left <= 0;
-  if (left <= 0) {
-    $('countdown-label').textContent = 'Prazo encerrado em ' + deadlineLabel(selected) + '.';
-    stopCountdown();
-    // O relógio do visitante é apenas indicativo; quem recusa o envio é o servidor.
-    if (selected.estado === 'ABERTO') { selected.estado = 'ENCERRADO'; updateState(); }
-    return;
-  }
-  $('countdown-label').textContent = 'Inscrições até ' + deadlineLabel(selected);
+/* Desenha um contador. O sufixo separa o da tela de escolha do que fica sobre o formulário. */
+function drawCountdown(sufixo, prazo, rotulo) {
+  const bloco = $('countdown'+sufixo);
+  if (prazo === null) { bloco.hidden = true; return 0; }
+  const left = prazo - Date.now();
+  bloco.hidden = false;
+  bloco.classList.toggle('is-over', left <= 0);
+  bloco.classList.toggle('is-soon', left > 0 && left <= 864e5);
+  $('countdown-clock'+sufixo).hidden = left <= 0;
+  if (left <= 0) { $('countdown-label'+sufixo).textContent = 'Prazo encerrado em ' + rotulo + '.'; return left; }
+  $('countdown-label'+sufixo).textContent = 'Inscrições até ' + rotulo;
   const total = Math.floor(left/1000);
-  $('cd-dias').textContent = pad(Math.floor(total/86400));
-  $('cd-horas').textContent = pad(Math.floor(total%86400/3600));
-  $('cd-minutos').textContent = pad(Math.floor(total%3600/60));
-  $('cd-segundos').textContent = pad(total%60);
+  $('cd-dias'+sufixo).textContent = pad(Math.floor(total/86400));
+  $('cd-horas'+sufixo).textContent = pad(Math.floor(total%86400/3600));
+  $('cd-minutos'+sufixo).textContent = pad(Math.floor(total%3600/60));
+  $('cd-segundos'+sufixo).textContent = pad(total%60);
+  return left;
 }
-function startCountdown() { stopCountdown(); renderCountdown(); if(deadlineAt(selected)!==null) ticker=setInterval(renderCountdown,1000); }
+/* Prazo único da tela de escolha: só aparece quando os eventos encerram juntos. */
+function prazoComum() {
+  const prazos = events.map(deadlineAt);
+  return prazos.length && prazos.every(p => p !== null && p === prazos[0]) ? prazos[0] : null;
+}
+function renderCountdown() {
+  if (!$('selection').hidden) drawCountdown('-home', prazoComum(), deadlineLabel(events[0]));
+  if (!selected) { $('countdown').hidden = true; return; }
+  const left = drawCountdown('', deadlineAt(selected), deadlineLabel(selected));
+  // O relógio do visitante é apenas indicativo; quem recusa o envio é o servidor.
+  if (left <= 0 && selected.estado === 'ABERTO') { selected.estado = 'ENCERRADO'; updateState(); }
+}
+function startCountdown() { renderCountdown(); if(!ticker) ticker=setInterval(renderCountdown,1000); }
 function updateState() {
   const open = connected && selected?.estado === 'ABERTO';
   $('submit').disabled = !open || busy;

@@ -64,7 +64,7 @@ Na aba **Eventos**, já serão criadas as linhas `ept` e `eja` com status `RASCU
 
 Mantenha as colunas de datas como **texto simples**. Abertura e encerramento precisam ter fuso explícito, e encerramento deve ser posterior à abertura. As datas do evento não são automaticamente usadas como prazo de inscrição.
 
-O site mostra um contador regressivo até o `Encerramento` de cada evento, no cartão de escolha e acima do formulário. O contador usa o relógio do visitante e serve apenas para orientar: quem aceita ou recusa a inscrição é o servidor, que compara o horário do Apps Script com `Abertura` e `Encerramento`. Para mudar um prazo, edite a coluna `Encerramento` na planilha — o site passa a refletir o novo valor sem alteração de código. A linha só é criada com esses prazos em planilhas novas: `prepararPlanilha` nunca sobrescreve uma aba `Eventos` que já tenha conteúdo.
+O site mostra um contador regressivo até o `Encerramento`: na tela de escolha, quando os dois eventos encerram juntos, e acima do formulário, com o prazo do evento escolhido. Se os prazos passarem a ser diferentes, o contador da tela inicial some e cada cartão continua mostrando o seu. O contador usa o relógio do visitante e serve apenas para orientar: quem aceita ou recusa a inscrição é o servidor, que compara o horário do Apps Script com `Abertura` e `Encerramento`. Para mudar um prazo, edite a coluna `Encerramento` na planilha — o site passa a refletir o novo valor sem alteração de código. A linha só é criada com esses prazos em planilhas novas: `prepararPlanilha` nunca sobrescreve uma aba `Eventos` que já tenha conteúdo.
 
 Na aba **Funcoes**, cada evento possui suas próprias linhas:
 
