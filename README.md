@@ -46,7 +46,7 @@ O código não usa IDs, endpoints nem gatilhos do projeto antigo. Não há migra
 
 ## 2. Configurar eventos e vagas
 
-Na aba **Eventos**, já serão criadas as linhas `ept` e `eja`, ambas com 250 no campo `LimiteTotal` e status `RASCUNHO`.
+Na aba **Eventos**, já serão criadas as linhas `ept` e `eja` com status `RASCUNHO`. `LimiteTotal` vem com 271 no EPT e 265 no EJA, que é a soma das cotas de cada evento — um teto menor bloquearia inscrições mesmo havendo vaga na função.
 
 | Campo | Como preencher |
 |---|---|
@@ -68,10 +68,13 @@ Na aba **Funcoes**, cada evento possui suas próprias linhas:
 
 - `Limite`: quantidade permitida. Todas as cotas começam em **0**, aguardando sua distribuição; zero fecha a opção. Campo vazio/inválido fecha a configuração do evento.
 - `Ativa`: use `SIM` para disponibilizar uma função; `NAO` para removê-la das opções.
+- As cotas seguem a tabela acordada para 2026: SUPROT 15, SUPED 10, IAT 10, SUPEC 5, SUDEPE 5, SGINF 21 (dividida em unidades), CEEPE 4, EGEPI 3, FGV/DGPE 5, IRDEB 3, TCE 3, APG 5, GAB/SEC 5, Gestão Escolar - Salvador 90 e, só no EPT, Professores EPT - Validação de matrizes 6. Cada NTE tem Diretor(a), Ponto Focal do SABE e Coordenador(a) Pedagógico(a), com uma vaga cada.
+- Não há mais funções do tipo `MUNICIPAL`: a tabela de 2026 não prevê representantes municipais, então o campo de município não aparece no formulário. A aba `MunicipiosNTE` continua na planilha e volta a ser usada se alguma função municipal for reativada.
 - `Setor`: agrupa funções sob uma opção só. Quem escolhe o setor no formulário recebe um segundo campo para a unidade. `SGINF` já vem dividida em `DAI` (4), `DIE` (13) e `DIROE` (4), cada uma com sua própria cota; a soma é o teto do setor, pois não há limite separado para ele. Deixe vazio para funções sem subdivisão. A coluna é opcional: planilhas criadas antes dela continuam funcionando e tratam o valor como vazio.
 - `GrupoVagas`: funções com o mesmo grupo compartilham a mesma cota. As duas funções municipais usam `representantes-municipais`; preencha o mesmo limite em ambas. Exemplo: 30 nas duas linhas significa **30 vagas compartilhadas**, não 60.
 - Funções de NTE têm linhas por número e função, permitindo exceções próprias. A exceção antiga do NTE 19 não é aplicada automaticamente.
 - O limite total do evento prevalece mesmo se a soma de cotas for maior que 250. Diminuir uma cota abaixo dos inscritos não cancela inscrições existentes; apenas impede novas entradas.
+- Os `FuncaoID` mudaram junto com a tabela de 2026 (`iat`, `suped`, `sginf-die`…), substituindo os antigos `instituicao-NN`. Como ainda não há inscrições, a troca é segura; depois de abrir, não renomeie.
 - Não renomeie `EventoID`, `FuncaoID` ou `GrupoVagas` após inscrições, pois são chaves para contagem. Alterações estruturais precisam de migração explícita.
 - Não crie linhas duplicadas para a mesma função/evento. Valores desconhecidos não são aceitos no envio.
 

@@ -9,9 +9,11 @@ var HEADERS = {
 /* Prazos acordados: EPT ate 06/10 e EJA ate 07/10, ambos as 23:59 (America/Bahia).
    O segundo 59 mantem o minuto 23:59 inteiro dentro do prazo.
    Abertura fica em branco de proposito: preencha-a e mude Status para ABERTO ao liberar. */
+/* LimiteTotal acompanha a soma das cotas do evento (271 no EPT, 265 no EJA, que nao recebe
+   a linha de professores de EPT). Um teto menor que a soma bloquearia inscricoes com vaga livre. */
 var EVENTOS_PADRAO = [
-  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-06T23:59:59-03:00',250,1],
-  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-07T23:59:59-03:00',250,1]
+  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-06T23:59:59-03:00',271,1],
+  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-07T23:59:59-03:00',265,1]
 ];
 /* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
 var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'] };
@@ -99,7 +101,10 @@ function prepararPlanilha() {
     }
     if (name === 'Funcoes') {
       var roles = [];
-      ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) { roles.push([id,f.id,f.nome,f.tipo,f.nte || '',f.limite || 0,f.grupo || f.id,'SIM',f.setor || '']); }); });
+      ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) {
+        if (f.eventos && f.eventos.indexOf(id) < 0) return;
+        roles.push([id,f.id,f.nome,f.tipo,f.nte || '',f.limite || 0,f.grupo || f.id,'SIM',f.setor || '']);
+      }); });
       sheet.getRange(2,1,roles.length,9).setValues(roles);
     }
     if (name === 'MunicipiosNTE') {
