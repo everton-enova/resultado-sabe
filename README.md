@@ -18,7 +18,7 @@ Uma pessoa pode se inscrever nos dois eventos, uma vez em cada. O site preserva 
 - Validação de CPF no navegador e no servidor; duplicidade por evento; bloqueio de concorrência no Apps Script.
 - Reenvio da mesma solicitação recupera o protocolo sem nova gravação enquanto a página é mantida aberta.
 - API para Vercel, Apps Script e função que cria a estrutura da planilha sem sobrescrever abas existentes.
-- Painel da aba `Vagas` preenchido pelo próprio script: ele escreve apenas `Inscritos` e `Disponíveis` de cada bloco, na hora de cada inscrição e por gatilho de um minuto. A disponibilidade do site é calculada diretamente das inscrições, independentemente do painel.
+- Aba `Monitoramento` montada pelo script, com EJA e EPT em blocos separados e ocupação em cor, mais a aba `Vagas` preenchida pelo próprio script: ele escreve apenas `Inscritos` e `Disponíveis` de cada bloco, na hora de cada inscrição e por gatilho de um minuto. A disponibilidade do site é calculada diretamente das inscrições, independentemente do painel.
 
 Não há gravação em planilha até configurar a integração. Sem conexão, é possível conhecer os formulários, com envio desabilitado. Não há simulação de inscrição confirmada na interface de produção.
 

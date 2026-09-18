@@ -72,8 +72,22 @@ O painel também é recalculado imediatamente a cada inscrição confirmada, den
 mesmo bloqueio que grava a linha. O gatilho é rede de segurança, para o caso de uma
 edição manual na planilha.
 
-O script escreve **apenas** as colunas `Inscritos` e `Disponíveis` de cada bloco do seu
-painel. Rótulo, limite, cores e mesclagens continuam seus. Ele localiza os blocos pelo
+### As duas visões
+
+O script mantém duas coisas atualizadas:
+
+**Aba `Monitoramento`** — montada e formatada por ele. Um bloco por evento, lado a lado,
+com EJA em vermelho e EPT em azul, as mesmas cores do site. Cada bloco traz
+`Função / Instituição`, `Limite`, `Inscritos`, `Disponíveis` e `Ocupação` em porcentagem,
+com a célula de ocupação colorida: verde até 80%, âmbar a partir de 80% e vermelho quando
+lota. A última linha é o `TOTAL` do evento, em negrito. As funções de NTE aparecem
+agregadas por papel — "Diretores dos NTE", 27 vagas — como no seu painel impresso.
+No topo fica a hora da última atualização.
+
+Para criar a aba na primeira vez, use o menu **Montar painel de monitoramento**.
+
+**Aba `Vagas`** — a sua, montada à mão. O script escreve **apenas** as colunas
+`Inscritos` e `Disponíveis` de cada bloco do seu painel. Rótulo, limite, cores e mesclagens continuam seus. Ele localiza os blocos pelo
 cabeçalho `Função / Instituição` e descobre o evento pelo título acima (`EJA` ou `EPT`),
 então mover os blocos de coluna não quebra nada; renomear o cabeçalho, sim.
 

@@ -79,3 +79,51 @@ test('painel de vagas montado a mao recebe Inscritos e Disponiveis nos dois bloc
   // EPT: so a inscricao confirmada de SGINF/DIE conta; a cancelada nao
   assert.equal(JSON.stringify(ept.valores),JSON.stringify([[0,3],[0,10],[1,12],[0,90],[1,249]]));
 });
+function monitor() {
+  const escritas=[], formatos=[];
+  const ctx={RegistrationCore:core, PropertiesService:{getScriptProperties:()=>({getProperty:()=>'s'.repeat(40)})},
+    LockService:{getScriptLock:()=>({waitLock:()=>true,releaseLock:()=>{}})},
+    ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({setMimeType:()=>JSON.parse(t)})},
+    Utilities:{formatDate:()=>'18/09/2026 16:00:00'}, SpreadsheetApp:{flush:()=>{}}, ScriptApp:{getProjectTriggers:()=>[]}};
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'), ctx);
+  const encadeia=alvo=>new Proxy(alvo,{get:(o,k)=>k in o?o[k]:()=>encadeia(o)});
+  const sheet={getMaxRows:()=>200,setFrozenRows:()=>{},setColumnWidth:()=>{},
+    getRange:(linha,coluna,n,m)=>encadeia({setValues:v=>{escritas.push({linha,coluna,valores:v});return encadeia({});},
+      setBackgrounds:c=>{formatos.push({linha,coluna,cores:c});return encadeia({});}})};
+  ctx.database_=()=>({getSheetByName:()=>sheet,insertSheet:()=>sheet});
+  return {ctx,escritas,formatos,sheet};
+}
+test('painel de monitoramento agrega os NTE por papel e marca a ocupacao em cor',()=>{
+  const m=monitor();
+  const funcoes=[];
+  [1,2,3,4].forEach(n=>{
+    funcoes.push({eventoId:'eja',id:`nte-0${n}-diretor`,nome:'Diretor(a)',tipo:'NTE',limite:1,grupo:`nte-0${n}-diretor`,ativa:true});
+    funcoes.push({eventoId:'eja',id:`nte-0${n}-coordenador`,nome:'Coordenador(a) Pedagógico(a)',tipo:'NTE',limite:1,grupo:`nte-0${n}-coordenador`,ativa:true});
+  });
+  funcoes.push({eventoId:'eja',id:'iat',nome:'IAT',tipo:'INSTITUCIONAL',limite:8,grupo:'iat',ativa:true});
+  const linhas=m.ctx.linhasMonitoramento_(funcoes);
+  assert.equal(JSON.stringify(linhas.map(l=>l.rotulo)),JSON.stringify(['Diretores dos NTE','Coordenadores pedagógicos dos NTE','IAT']));
+  assert.equal(linhas[0].funcoes.length,4);
+  const inscritas=[{grupoVagas:'nte-01-diretor'},{grupoVagas:'nte-02-diretor'},{grupoVagas:'nte-03-diretor'},{grupoVagas:'nte-04-diretor'},{grupoVagas:'iat'}];
+  const bloco=m.ctx.blocoMonitoramento_({id:'eja',nome:'EJA',limite:100},funcoes,inscritas);
+  // rotulo, limite, inscritos, disponiveis, ocupacao
+  assert.equal(JSON.stringify(bloco.corpo[0]),JSON.stringify(['Diretores dos NTE',4,4,0,1]));
+  assert.equal(JSON.stringify(bloco.corpo[1]),JSON.stringify(['Coordenadores pedagógicos dos NTE',4,0,4,0]));
+  assert.equal(JSON.stringify(bloco.corpo[2]),JSON.stringify(['IAT',8,1,7,0.125]));
+  assert.equal(JSON.stringify(bloco.corpo[3]),JSON.stringify(['TOTAL',100,5,95,0.05]));
+  assert.equal(bloco.cores[0][0],'#fdecec'); // lotado
+  assert.equal(bloco.cores[2][0],'#e8f5ed'); // folgado
+  assert.equal(m.ctx.corOcupacao_(8,10),'#fdf3e0'); // apertado
+});
+test('monitoramento escreve um bloco por evento, lado a lado',()=>{
+  const m=monitor();
+  const funcoes=['ept','eja'].map(eventoId=>({eventoId,id:'iat',nome:'IAT',tipo:'INSTITUCIONAL',limite:8,grupo:'iat',ativa:true}));
+  const config={eventos:[{id:'ept',nome:'EPT',limite:250},{id:'eja',nome:'EJA',limite:250}],funcoes,municipios:[]};
+  m.ctx.monitoramento_(config,[{eventoId:'ept',status:'CONFIRMADA',grupoVagas:'iat'}]);
+  const cabecalho=m.escritas.find(e=>e.linha===5);assert.equal(JSON.stringify(cabecalho.valores[0]),JSON.stringify(['Função / Instituição','Limite','Inscritos','Disponíveis','Ocupação']));const corpos=m.escritas.filter(e=>e.linha===6);
+  assert.equal(corpos.length,2);
+  assert.equal(corpos[0].coluna,1); assert.equal(corpos[1].coluna,7);
+  assert.equal(JSON.stringify(corpos[0].valores[0]),JSON.stringify(['IAT',8,1,7,0.125]));
+  assert.equal(JSON.stringify(corpos[1].valores[0]),JSON.stringify(['IAT',8,0,8,0]));
+});
