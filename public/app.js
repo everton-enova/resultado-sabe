@@ -13,10 +13,11 @@ function dateLabel(date) {
 }
 function applyTheme(id) {
   const themes = {ept:'#1a3a8a',eja:'#a32020'};
+  const neutral = '#0e0f12';
   if (id && themes[id]) document.documentElement.dataset.theme = id;
   else delete document.documentElement.dataset.theme;
   const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) meta.content = themes[id] || '#1a3a8a';
+  if (meta) meta.content = themes[id] || neutral;
 }
 function show(section) { for(const id of ['selection','registration','success']) $(id).hidden = id !== section; }
 function option(select, value, name, disabled=false) { const o = new Option(name,value); o.disabled=disabled; select.add(o); }

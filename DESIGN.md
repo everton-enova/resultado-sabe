@@ -8,8 +8,9 @@ Fonte principal: `index.html`, `background.webp` e `brasao_estado.png` do reposi
 | Inter, azul #1a3a8a, vermelho #d42b2b, raio de 8 px | Tokens originais | Azul para títulos/rótulos e vermelho para ação principal |
 | Fotografia e assinatura institucional | Arquivos do repositório | Recursos locais, sem URL temporária de imagem |
 | Escolha EPT/EJA antes do formulário | Pedido do usuário | Dois botões com sigla, data e estado da inscrição |
+| Página inicial em tons de preto | Pedido do usuário | Estado sem `data-theme`: painel grafite e fotografia dessaturada por `background-blend-mode:saturation` |
 | Cor por evento: EPT azul, EJA vermelho | Pedido do usuário | Tokens trocados por `data-theme` no `<html>`: painel esquerdo, títulos, rótulos, avisos, foco e botão de ação |
-| Tela de escolha mantém as duas cores | Decorrência | Cada cartão mostra a sigla e a seta na cor do seu evento, antecipando o tema |
+| Tela de escolha: neutra com cor só nos cartões | Decorrência | Sobre o preto, cada cartão mostra a sigla e a seta na cor do seu evento, antecipando o tema |
 | Campos condicionais de município e NTE | Formulário original | Mesma sequência, opções carregadas por evento |
 | Foco visível, rótulos e erros vinculados | Refero Design, craft-details | Navegação com teclado, erros por campo e anúncio de status |
 | Vermelho de erro independente do tema | Acessibilidade | `--red` permanece fixo em campos inválidos, separado do vermelho do tema EJA |
