@@ -11,6 +11,13 @@ function dateLabel(date) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return 'Data a divulgar';
   return new Date(date+'T12:00:00-03:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'America/Bahia'});
 }
+function applyTheme(id) {
+  const themes = {ept:'#1a3a8a',eja:'#a32020'};
+  if (id && themes[id]) document.documentElement.dataset.theme = id;
+  else delete document.documentElement.dataset.theme;
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = themes[id] || '#1a3a8a';
+}
 function show(section) { for(const id of ['selection','registration','success']) $(id).hidden = id !== section; }
 function option(select, value, name, disabled=false) { const o = new Option(name,value); o.disabled=disabled; select.add(o); }
 function resetSelect(id, placeholder) { $(id).replaceChildren(); option($(id),'',placeholder); }
@@ -18,7 +25,7 @@ function usable(role) { return selected.estado !== 'ABERTO' || role.disponiveis 
 function drawEvents() {
   $('event-options').replaceChildren();
   for(const event of events) {
-    const button = document.createElement('button'); button.type='button'; button.className='event-option'; button.disabled=loading;
+    const button = document.createElement('button'); button.type='button'; button.className='event-option'; button.disabled=loading; button.dataset.event=event.id;
     const code=document.createElement('span'); code.className='event-code'; code.textContent=event.nome;
     const detail=document.createElement('span'); detail.className='event-details';
     const day=document.createElement('span'); day.className='event-day'; day.textContent=dateLabel(event.data);
@@ -45,6 +52,7 @@ function clearErrors() {
 function choose(id) {
   if(busy) return;
   selected=events.find(e=>e.id===id); if(!selected) return;
+  applyTheme(selected.id);
   request=null; $('form').reset(); clearErrors();
   $('event-title').textContent=selected.nome; $('event-date').textContent=dateLabel(selected.data);
   $('event-time').textContent=selected.horario || 'A divulgar'; $('event-place').textContent=selected.local || 'A divulgar';
@@ -79,7 +87,7 @@ $('nte').addEventListener('change',()=>{
   selected.funcoes.filter(f=>f.tipo==='NTE' && f.nte===$('nte').value).forEach(f=>option($('nte-funcao'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
 });
 function back() {
-  if(busy)return; selected=null; request=null; $('form').reset(); show('selection');
+  if(busy)return; selected=null; request=null; $('form').reset(); applyTheme(null); show('selection');
   $('event-title').textContent='EPT & EJA'; $('event-date').textContent='7 e 8 de outubro de 2026';
   $('event-time').textContent='A divulgar'; $('event-place').textContent='A divulgar';
   $('event-intro').textContent='Dois eventos. Um espaço para conhecer e compartilhar os resultados.';

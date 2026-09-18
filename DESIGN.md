@@ -8,7 +8,12 @@ Fonte principal: `index.html`, `background.webp` e `brasao_estado.png` do reposi
 | Inter, azul #1a3a8a, vermelho #d42b2b, raio de 8 px | Tokens originais | Azul para títulos/rótulos e vermelho para ação principal |
 | Fotografia e assinatura institucional | Arquivos do repositório | Recursos locais, sem URL temporária de imagem |
 | Escolha EPT/EJA antes do formulário | Pedido do usuário | Dois botões com sigla, data e estado da inscrição |
+| Cor por evento: EPT azul, EJA vermelho | Pedido do usuário | Tokens trocados por `data-theme` no `<html>`: painel esquerdo, títulos, rótulos, avisos, foco e botão de ação |
+| Tela de escolha mantém as duas cores | Decorrência | Cada cartão mostra a sigla e a seta na cor do seu evento, antecipando o tema |
 | Campos condicionais de município e NTE | Formulário original | Mesma sequência, opções carregadas por evento |
 | Foco visível, rótulos e erros vinculados | Refero Design, craft-details | Navegação com teclado, erros por campo e anúncio de status |
+| Vermelho de erro independente do tema | Acessibilidade | `--red` permanece fixo em campos inválidos, separado do vermelho do tema EJA |
+
+O botão de troca de evento é uma pílula com contorno e cor do tema, não mais um link discreto.
 
 Não preservar títulos/datas antigas do SABE 2025, prazos antigos ou cotas presumidas. Manter a identidade institucional do exemplo e a distinção entre os dois eventos. As opções locais são apenas prévia quando a API está indisponível, com envio bloqueado.
