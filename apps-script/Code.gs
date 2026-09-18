@@ -6,7 +6,7 @@ var HEADERS = {
   /* Colunas da planilha base, com Evento acrescentado e as tecnicas no fim. O envio localiza cada
      coluna pelo nome do cabecalho: reordenar nao quebra, colunas a mais sao ignoradas e recriar uma
      coluna conhecida (NTE, Municipio, Setor, Tipo) volta a preenche-la sem mudar codigo. */
-  Inscricoes: ['Data/Hora','Evento','Nome','CPF','Telefone','E-mail','Funcao','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
+  Inscricoes: ['Data/Hora','Evento','Nome','CPF','Telefone','E-mail','Funcao','NTE','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
   /* Painel gerado pelo menu. Nome proprio para nunca sobrescrever a aba Vagas montada a mao. */
   PainelVagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
