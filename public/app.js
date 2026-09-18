@@ -201,7 +201,7 @@ async function load() {
   } catch(_) {
     connected=false; $('connection-notice').hidden=false;
     $('connection-notice').textContent='As inscrições estão em preparação ou temporariamente indisponíveis. Você pode conhecer os formulários e voltar mais tarde para se inscrever.';
-    try {const response=await fetch('/catalogo.json');const catalog=await response.json();cities=catalog.municipios;events=defaults.map(e=>({...e,estado:'FECHADO',funcoes:catalog.funcoes.filter(f=>!f.eventos || f.eventos.includes(e.id)),municipiosLotados:[]}));}catch(_){/* Nenhum envio é liberado sem API. */}
+    try {const response=await fetch('/catalogo.json');const catalog=await response.json();cities=catalog.municipios;events=defaults.map(e=>({...e,estado:'FECHADO',funcoes:catalog.funcoes,municipiosLotados:[]}));}catch(_){/* Nenhum envio é liberado sem API. */}
   }
   loading=false; drawEvents();
 }

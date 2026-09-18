@@ -1,591 +1,48 @@
-// Catálogo de funções e cotas acordado para 2026. Substitui as listas herdadas da referência.
+// Funções e cotas conforme a aba Vagas da planilha base.
 // "setor": funções do mesmo setor viram uma opção única que abre a escolha da unidade.
-// "eventos": restringe a função a um evento; ausente vale para todos.
+// "limites": cota diferente por evento; "limite": mesma cota nos dois.
 var CATALOGO_FUNCOES = [
   {
-    "id": "nte-01-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 01",
-    "limite": 1
+    "id": "nte-diretores",
+    "nome": "Diretores dos NTE",
+    "tipo": "INSTITUCIONAL",
+    "limite": 27
   },
   {
-    "id": "nte-01-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 01",
-    "limite": 1
+    "id": "nte-pontos-focais",
+    "nome": "Pontos focais do SABE nos NTE",
+    "tipo": "INSTITUCIONAL",
+    "limite": 27
   },
   {
-    "id": "nte-01-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 01",
-    "limite": 1
-  },
-  {
-    "id": "nte-02-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 02",
-    "limite": 1
-  },
-  {
-    "id": "nte-02-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 02",
-    "limite": 1
-  },
-  {
-    "id": "nte-02-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 02",
-    "limite": 1
-  },
-  {
-    "id": "nte-03-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 03",
-    "limite": 1
-  },
-  {
-    "id": "nte-03-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 03",
-    "limite": 1
-  },
-  {
-    "id": "nte-03-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 03",
-    "limite": 1
-  },
-  {
-    "id": "nte-04-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 04",
-    "limite": 1
-  },
-  {
-    "id": "nte-04-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 04",
-    "limite": 1
-  },
-  {
-    "id": "nte-04-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 04",
-    "limite": 1
-  },
-  {
-    "id": "nte-05-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 05",
-    "limite": 1
-  },
-  {
-    "id": "nte-05-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 05",
-    "limite": 1
-  },
-  {
-    "id": "nte-05-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 05",
-    "limite": 1
-  },
-  {
-    "id": "nte-06-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 06",
-    "limite": 1
-  },
-  {
-    "id": "nte-06-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 06",
-    "limite": 1
-  },
-  {
-    "id": "nte-06-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 06",
-    "limite": 1
-  },
-  {
-    "id": "nte-07-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 07",
-    "limite": 1
-  },
-  {
-    "id": "nte-07-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 07",
-    "limite": 1
-  },
-  {
-    "id": "nte-07-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 07",
-    "limite": 1
-  },
-  {
-    "id": "nte-08-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 08",
-    "limite": 1
-  },
-  {
-    "id": "nte-08-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 08",
-    "limite": 1
-  },
-  {
-    "id": "nte-08-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 08",
-    "limite": 1
-  },
-  {
-    "id": "nte-09-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 09",
-    "limite": 1
-  },
-  {
-    "id": "nte-09-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 09",
-    "limite": 1
-  },
-  {
-    "id": "nte-09-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 09",
-    "limite": 1
-  },
-  {
-    "id": "nte-10-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 10",
-    "limite": 1
-  },
-  {
-    "id": "nte-10-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 10",
-    "limite": 1
-  },
-  {
-    "id": "nte-10-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 10",
-    "limite": 1
-  },
-  {
-    "id": "nte-11-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 11",
-    "limite": 1
-  },
-  {
-    "id": "nte-11-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 11",
-    "limite": 1
-  },
-  {
-    "id": "nte-11-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 11",
-    "limite": 1
-  },
-  {
-    "id": "nte-12-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 12",
-    "limite": 1
-  },
-  {
-    "id": "nte-12-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 12",
-    "limite": 1
-  },
-  {
-    "id": "nte-12-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 12",
-    "limite": 1
-  },
-  {
-    "id": "nte-13-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 13",
-    "limite": 1
-  },
-  {
-    "id": "nte-13-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 13",
-    "limite": 1
-  },
-  {
-    "id": "nte-13-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 13",
-    "limite": 1
-  },
-  {
-    "id": "nte-14-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 14",
-    "limite": 1
-  },
-  {
-    "id": "nte-14-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 14",
-    "limite": 1
-  },
-  {
-    "id": "nte-14-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 14",
-    "limite": 1
-  },
-  {
-    "id": "nte-15-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 15",
-    "limite": 1
-  },
-  {
-    "id": "nte-15-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 15",
-    "limite": 1
-  },
-  {
-    "id": "nte-15-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 15",
-    "limite": 1
-  },
-  {
-    "id": "nte-16-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 16",
-    "limite": 1
-  },
-  {
-    "id": "nte-16-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 16",
-    "limite": 1
-  },
-  {
-    "id": "nte-16-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 16",
-    "limite": 1
-  },
-  {
-    "id": "nte-17-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 17",
-    "limite": 1
-  },
-  {
-    "id": "nte-17-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 17",
-    "limite": 1
-  },
-  {
-    "id": "nte-17-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 17",
-    "limite": 1
-  },
-  {
-    "id": "nte-18-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 18",
-    "limite": 1
-  },
-  {
-    "id": "nte-18-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 18",
-    "limite": 1
-  },
-  {
-    "id": "nte-18-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 18",
-    "limite": 1
-  },
-  {
-    "id": "nte-19-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 19",
-    "limite": 1
-  },
-  {
-    "id": "nte-19-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 19",
-    "limite": 1
-  },
-  {
-    "id": "nte-19-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 19",
-    "limite": 1
-  },
-  {
-    "id": "nte-20-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 20",
-    "limite": 1
-  },
-  {
-    "id": "nte-20-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 20",
-    "limite": 1
-  },
-  {
-    "id": "nte-20-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 20",
-    "limite": 1
-  },
-  {
-    "id": "nte-21-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 21",
-    "limite": 1
-  },
-  {
-    "id": "nte-21-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 21",
-    "limite": 1
-  },
-  {
-    "id": "nte-21-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 21",
-    "limite": 1
-  },
-  {
-    "id": "nte-22-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 22",
-    "limite": 1
-  },
-  {
-    "id": "nte-22-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 22",
-    "limite": 1
-  },
-  {
-    "id": "nte-22-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 22",
-    "limite": 1
-  },
-  {
-    "id": "nte-23-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 23",
-    "limite": 1
-  },
-  {
-    "id": "nte-23-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 23",
-    "limite": 1
-  },
-  {
-    "id": "nte-23-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 23",
-    "limite": 1
-  },
-  {
-    "id": "nte-24-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 24",
-    "limite": 1
-  },
-  {
-    "id": "nte-24-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 24",
-    "limite": 1
-  },
-  {
-    "id": "nte-24-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 24",
-    "limite": 1
-  },
-  {
-    "id": "nte-25-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 25",
-    "limite": 1
-  },
-  {
-    "id": "nte-25-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 25",
-    "limite": 1
-  },
-  {
-    "id": "nte-25-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 25",
-    "limite": 1
-  },
-  {
-    "id": "nte-26-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 26",
-    "limite": 1
-  },
-  {
-    "id": "nte-26-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 26",
-    "limite": 1
-  },
-  {
-    "id": "nte-26-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 26",
-    "limite": 1
-  },
-  {
-    "id": "nte-27-diretor",
-    "nome": "Diretor(a)",
-    "tipo": "NTE",
-    "nte": "NTE 27",
-    "limite": 1
-  },
-  {
-    "id": "nte-27-ponto-focal",
-    "nome": "Ponto Focal do SABE",
-    "tipo": "NTE",
-    "nte": "NTE 27",
-    "limite": 1
-  },
-  {
-    "id": "nte-27-coordenador",
-    "nome": "Coordenador(a) Pedagógico(a)",
-    "tipo": "NTE",
-    "nte": "NTE 27",
-    "limite": 1
+    "id": "nte-coordenadores",
+    "nome": "Coordenadores pedagógicos dos NTE",
+    "tipo": "INSTITUCIONAL",
+    "limite": 27
   },
   {
     "id": "suprot",
     "nome": "SUPROT",
     "tipo": "INSTITUCIONAL",
-    "limite": 15
+    "limites": {
+      "eja": 5,
+      "ept": 10
+    }
   },
   {
     "id": "suped",
     "nome": "SUPED",
     "tipo": "INSTITUCIONAL",
-    "limite": 10
+    "limites": {
+      "eja": 10,
+      "ept": 5
+    }
   },
   {
     "id": "iat",
     "nome": "IAT",
     "tipo": "INSTITUCIONAL",
-    "limite": 10
+    "limite": 8
   },
   {
     "id": "supec",
@@ -597,40 +54,40 @@ var CATALOGO_FUNCOES = [
     "id": "sudepe",
     "nome": "SUDEPE",
     "tipo": "INSTITUCIONAL",
-    "limite": 5
-  },
-  {
-    "id": "sginf-dai",
-    "nome": "DAI",
-    "tipo": "INSTITUCIONAL",
-    "setor": "SGINF",
-    "limite": 4
+    "limite": 2
   },
   {
     "id": "sginf-die",
-    "nome": "DIE",
+    "nome": "SGINF/DIE",
     "tipo": "INSTITUCIONAL",
-    "setor": "SGINF",
-    "limite": 13
+    "limite": 13,
+    "setor": "SGINF"
+  },
+  {
+    "id": "sginf-dai",
+    "nome": "SGINF/DAI",
+    "tipo": "INSTITUCIONAL",
+    "limite": 4,
+    "setor": "SGINF"
   },
   {
     "id": "sginf-diroe",
-    "nome": "DIROE",
+    "nome": "SGINF/DIROE",
     "tipo": "INSTITUCIONAL",
-    "setor": "SGINF",
-    "limite": 4
+    "limite": 4,
+    "setor": "SGINF"
   },
   {
     "id": "ceepe",
     "nome": "CEEPE",
     "tipo": "INSTITUCIONAL",
-    "limite": 4
+    "limite": 2
   },
   {
     "id": "egepi",
     "nome": "EGEPI",
     "tipo": "INSTITUCIONAL",
-    "limite": 3
+    "limite": 2
   },
   {
     "id": "fgv-dgpe",
@@ -642,19 +99,19 @@ var CATALOGO_FUNCOES = [
     "id": "irdeb",
     "nome": "IRDEB",
     "tipo": "INSTITUCIONAL",
-    "limite": 3
+    "limite": 2
   },
   {
     "id": "tce",
     "nome": "TCE",
     "tipo": "INSTITUCIONAL",
-    "limite": 3
+    "limite": 2
   },
   {
     "id": "apg",
     "nome": "APG",
     "tipo": "INSTITUCIONAL",
-    "limite": 5
+    "limite": 4
   },
   {
     "id": "gab-sec",
@@ -669,13 +126,10 @@ var CATALOGO_FUNCOES = [
     "limite": 90
   },
   {
-    "id": "professores-ept-matrizes",
-    "nome": "Professores EPT - Validação de matrizes",
+    "id": "equipe-sec",
+    "nome": "EQUIPE SEC",
     "tipo": "INSTITUCIONAL",
-    "limite": 6,
-    "eventos": [
-      "ept"
-    ]
+    "limite": 6
   }
 ];
 var CATALOGO_MUNICIPIOS = [

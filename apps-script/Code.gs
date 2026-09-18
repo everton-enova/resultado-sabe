@@ -3,23 +3,23 @@ var HEADERS = {
   Eventos: ['EventoID','Nome','Data','Local','Horario','Status','Abertura','Encerramento','LimiteTotal','LimitePorMunicipio'],
   Funcoes: ['EventoID','FuncaoID','Nome','Tipo','NTE','Limite','GrupoVagas','Ativa','Setor'],
   MunicipiosNTE: ['Municipio','NTE'],
-  /* Colunas da planilha base, na mesma ordem de leitura, sem Municipio: sem funcoes municipais
-     ele sairia vazio em toda inscricao. O envio localiza cada coluna pelo nome do cabecalho, entao
-     reordenar nao quebra nada e recriar a coluna Municipio volta a preenche-la sozinha. */
-  Inscricoes: ['DataHora','Evento','Nome','CPF','Telefone','Email','Funcao','Setor','NTE','Observacoes','InscricaoID','Status','Tipo','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
-  Vagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
+  /* Colunas da planilha base, com Evento acrescentado e as tecnicas no fim. O envio localiza cada
+     coluna pelo nome do cabecalho: reordenar nao quebra, colunas a mais sao ignoradas e recriar uma
+     coluna conhecida (NTE, Municipio, Setor, Tipo) volta a preenche-la sem mudar codigo. */
+  Inscricoes: ['Data/Hora','Evento','Nome','CPF','Telefone','E-mail','Funcao','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
+  /* Painel gerado pelo menu. Nome proprio para nunca sobrescrever a aba Vagas montada a mao. */
+  PainelVagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
 /* Prazo acordado: os dois eventos encerram em 05/10 as 23:59 (America/Bahia).
    O segundo 59 mantem o minuto 23:59 inteiro dentro do prazo.
    Abertura fica em branco de proposito: preencha-a e mude Status para ABERTO ao liberar. */
-/* LimiteTotal acompanha a soma das cotas do evento (271 no EPT, 265 no EJA, que nao recebe
-   a linha de professores de EPT). Um teto menor que a soma bloquearia inscricoes com vaga livre. */
+/* LimiteTotal 250, o TOTAL de cada tabela da aba Vagas e a soma exata das cotas do evento. */
 var EVENTOS_PADRAO = [
-  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-05T23:59:59-03:00',271,1],
-  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-05T23:59:59-03:00',265,1]
+  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-05T23:59:59-03:00',250,1],
+  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-05T23:59:59-03:00',250,1]
 ];
 /* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
-var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'], Inscricoes: ['Setor','Observacoes'] };
+var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'], Inscricoes: ['Observacoes'] };
 function database_() {
   var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (!id) throw new Error('SPREADSHEET_ID ausente');
@@ -72,9 +72,10 @@ function doPost(e) {
       if (result.existing) return json_({ success:true, protocolo:result.existing.id, evento:result.existing.eventoNome });
       var r = result.record;
       r.id = Utilities.getUuid();
+      // Chaves iguais aos cabecalhos; as que a aba nao tiver sao simplesmente ignoradas.
       var values = { InscricaoID:r.id, EventoID:r.eventoId, Evento:r.eventoNome,
-        DataHora:Utilities.formatDate(new Date(), 'America/Bahia', "yyyy-MM-dd'T'HH:mm:ssXXX"), Nome:r.nome,
-        CPF:r.cpf, Telefone:r.telefone, Email:r.email, FuncaoID:r.funcaoId, Funcao:r.funcao,
+        'Data/Hora':Utilities.formatDate(new Date(), 'America/Bahia', "yyyy-MM-dd'T'HH:mm:ssXXX"), Nome:r.nome,
+        CPF:r.cpf, Telefone:r.telefone, 'E-mail':r.email, FuncaoID:r.funcaoId, Funcao:r.funcao,
         Setor:r.setor, Tipo:r.tipo, Municipio:r.municipio, NTE:r.nte, GrupoVagas:r.grupoVagas,
         Status:r.status, ChaveRequisicao:r.requestId, DadosRequisicao:r.canonical };
       var sheet = database_().getSheetByName('Inscricoes');
@@ -105,8 +106,8 @@ function prepararPlanilha() {
     if (name === 'Funcoes') {
       var roles = [];
       ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) {
-        if (f.eventos && f.eventos.indexOf(id) < 0) return;
-        roles.push([id,f.id,f.nome,f.tipo,f.nte || '',f.limite || 0,f.grupo || f.id,'SIM',f.setor || '']);
+        var limite = f.limites ? f.limites[id] : f.limite;
+        roles.push([id,f.id,f.nome,f.tipo,f.nte || '',limite || 0,f.grupo || f.id,'SIM',f.setor || '']);
       }); });
       sheet.getRange(2,1,roles.length,9).setValues(roles);
     }
@@ -132,7 +133,7 @@ function atualizarPainelVagas() {
         data.push([e.id,e.nome,group,f.limite,used,Math.max(0,Math.min(f.limite-used,e.limite-active.length))]);
       });
     });
-    var sheet = database_().getSheetByName('Vagas');
+    var sheet = database_().getSheetByName('PainelVagas');
     if (sheet.getLastRow()>1) sheet.getRange(2,1,sheet.getLastRow()-1,6).clearContent();
     if (data.length) sheet.getRange(2,1,data.length,6).setValues(data);
   } finally { lock.releaseLock(); }

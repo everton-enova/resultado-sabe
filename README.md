@@ -18,7 +18,7 @@ Uma pessoa pode se inscrever nos dois eventos, uma vez em cada. O site preserva 
 - Validação de CPF no navegador e no servidor; duplicidade por evento; bloqueio de concorrência no Apps Script.
 - Reenvio da mesma solicitação recupera o protocolo sem nova gravação enquanto a página é mantida aberta.
 - API para Vercel, Apps Script e função que cria a estrutura da planilha sem sobrescrever abas existentes.
-- Painel de vagas atualizado manualmente pelo menu da planilha. A disponibilidade do site é calculada diretamente das inscrições, independentemente do painel.
+- Painel de vagas gerado pelo menu na aba `PainelVagas`, separada da aba `Vagas` montada à mão, que o script nunca toca. A disponibilidade do site é calculada diretamente das inscrições, independentemente do painel.
 
 Não há gravação em planilha até configurar a integração. Sem conexão, é possível conhecer os formulários, com envio desabilitado. Não há simulação de inscrição confirmada na interface de produção.
 
@@ -68,8 +68,11 @@ Na aba **Funcoes**, cada evento possui suas próprias linhas:
 
 - `Limite`: quantidade permitida. Todas as cotas começam em **0**, aguardando sua distribuição; zero fecha a opção. Campo vazio/inválido fecha a configuração do evento.
 - `Ativa`: use `SIM` para disponibilizar uma função; `NAO` para removê-la das opções.
-- As cotas seguem a tabela acordada para 2026: SUPROT 15, SUPED 10, IAT 10, SUPEC 5, SUDEPE 5, SGINF 21 (dividida em unidades), CEEPE 4, EGEPI 3, FGV/DGPE 5, IRDEB 3, TCE 3, APG 5, GAB/SEC 5, Gestão Escolar - Salvador 90 e, só no EPT, Professores EPT - Validação de matrizes 6. Cada NTE tem Diretor(a), Ponto Focal do SABE e Coordenador(a) Pedagógico(a), com uma vaga cada.
-- Não há mais funções do tipo `MUNICIPAL`: a tabela de 2026 não prevê representantes municipais, então o campo de município não aparece no formulário. A aba `MunicipiosNTE` continua na planilha e volta a ser usada se alguma função municipal for reativada.
+- As cotas seguem a aba **Vagas** da planilha base: 250 por evento. Iguais nos dois eventos em quase tudo; SUPROT tem 5 no EJA e 10 no EPT, SUPED tem 10 no EJA e 5 no EPT.
+- São 20 linhas por evento: Diretores dos NTE (27), Pontos focais do SABE nos NTE (27), Coordenadores pedagógicos dos NTE (27), SUPROT, SUPED, IAT (8), SUPEC (5), SUDEPE (2), SGINF/DIE (13), SGINF/DAI (4), SGINF/DIROE (4), CEEPE (2), EGEPI (2), FGV/DGPE (5), IRDEB (2), TCE (2), APG (4), GAB/SEC (5), Gestão Escolar - Salvador (90) e EQUIPE SEC (6).
+- As três funções de NTE são cotas únicas de 27, não uma vaga por NTE: o formulário não pergunta de qual NTE a pessoa é, e nada impede que as 27 venham do mesmo NTE.
+- `Gestão Escolar - Salvador` corresponde à linha "Diretores, vice-diretores e coordenadores pedagógicos das unidades escolares de Salvador participantes da avaliação" do painel; o nome curto é o que aparece na lista do formulário.
+- Não há funções do tipo `MUNICIPAL` nem `NTE`: o formulário não mostra os campos de município e de NTE. A aba `MunicipiosNTE` continua na planilha, inerte, e volta a ser usada se alguma função municipal for reativada.
 - `Setor`: agrupa funções sob uma opção só. Quem escolhe o setor no formulário recebe um segundo campo para a unidade. `SGINF` já vem dividida em `DAI` (4), `DIE` (13) e `DIROE` (4), cada uma com sua própria cota; a soma é o teto do setor, pois não há limite separado para ele. Deixe vazio para funções sem subdivisão. A coluna é opcional: planilhas criadas antes dela continuam funcionando e tratam o valor como vazio.
 - `GrupoVagas`: funções com o mesmo grupo compartilham a mesma cota. As duas funções municipais usam `representantes-municipais`; preencha o mesmo limite em ambas. Exemplo: 30 nas duas linhas significa **30 vagas compartilhadas**, não 60.
 - Funções de NTE têm linhas por número e função, permitindo exceções próprias. A exceção antiga do NTE 19 não é aplicada automaticamente.
@@ -78,7 +81,9 @@ Na aba **Funcoes**, cada evento possui suas próprias linhas:
 - Não renomeie `EventoID`, `FuncaoID` ou `GrupoVagas` após inscrições, pois são chaves para contagem. Alterações estruturais precisam de migração explícita.
 - Não crie linhas duplicadas para a mesma função/evento. Valores desconhecidos não são aceitos no envio.
 
-Na aba **Inscricoes**, as colunas seguem a planilha base, na mesma ordem de leitura, com `Evento` (EPT ou EJA) logo depois de `DataHora`. `Setor` acompanha a unidade escolhida dentro de um setor, como SGINF, e fica vazio nas demais funções. `Observacoes` é uma coluna livre: o site nunca escreve nela, então anotações da equipe permanecem. As colunas técnicas (`InscricaoID`, `EventoID`, `FuncaoID`, `GrupoVagas`, `ChaveRequisicao`, `DadosRequisicao`) ficam no fim. Não há coluna `Municipio`: sem funções do tipo `MUNICIPAL`, ela sairia vazia em toda inscrição. `NTE` continua, preenchida nas 81 vagas de NTE de cada evento — diretor, ponto focal e coordenador pedagógico — e vazia nas institucionais.
+Na aba **Inscricoes**, as colunas são as da planilha base — `Data/Hora`, `Nome`, `CPF`, `Telefone`, `E-mail`, `Funcao`, `Observacoes` — com `Evento` (EPT ou EJA) acrescentada logo depois de `Data/Hora`. `Observacoes` é livre: o site nunca escreve nela, então anotações da equipe permanecem. As técnicas (`InscricaoID`, `Status`, `EventoID`, `FuncaoID`, `GrupoVagas`, `ChaveRequisicao`, `DadosRequisicao`) ficam no fim e sustentam protocolo, contagem de cota e recuperação de envio repetido.
+
+O envio localiza cada coluna pelo nome do cabeçalho. Reordenar não quebra, colunas a mais são ignoradas e recriar uma coluna conhecida — `NTE`, `Municipio`, `Setor` ou `Tipo` — faz o site voltar a preenchê-la sem mudança de código. Renomear as existentes, aí sim, quebra.
 
 O envio localiza cada coluna pelo nome do cabeçalho. Isso significa que reordenar colunas não quebra a gravação, colunas a mais são ignoradas e, se representantes municipais voltarem, basta recriar a coluna `Municipio` que ela passa a ser preenchida sozinha. Renomear colunas, por outro lado, quebra.
 
