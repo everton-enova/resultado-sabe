@@ -123,7 +123,9 @@ function changeRole() {
     const setor=$('funcao').value.slice(6);
     $('setor-field').hidden=false; $('setor').required=true;
     resetSelect('setor','Selecione a diretoria');
-    selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL' && f.setor===setor).forEach(f=>option($('setor'),f.id,f.nome+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
+    // A planilha pode guardar "SGINF/DIE"; dentro do campo do setor basta a sigla.
+    const curto=f=>f.nome.startsWith(f.setor+'/')?f.nome.slice(f.setor.length+1):f.nome;
+    selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL' && f.setor===setor).forEach(f=>option($('setor'),f.id,curto(f)+(usable(f)?'':' — vagas preenchidas'),!usable(f)));
   }
   if($('funcao').value==='MUNICIPAL') {
     $('municipal-field').hidden=false; $('municipal').required=true;
@@ -192,8 +194,16 @@ $('form').addEventListener('submit',async e=>{
 async function load() {
   loading=true; drawEvents();
   try {
-    const response=await fetch('/api/inscricoes',{cache:'no-store',signal:AbortSignal.timeout(30000)});const data=await response.json();
-    if(!response.ok || !data.success || !Array.isArray(data.eventos))throw new Error();
+    // Uma falha isolada da integração não deve empurrar o visitante para o modo offline.
+    let data=null;
+    for(let tentativa=0;tentativa<2 && !data;tentativa++) {
+      try {
+        const response=await fetch('/api/inscricoes',{cache:'no-store',signal:AbortSignal.timeout(30000)});
+        const corpo=await response.json();
+        if(response.ok && corpo.success && Array.isArray(corpo.eventos))data=corpo;
+      } catch(_){/* tenta de novo antes de desistir */}
+    }
+    if(!data)throw new Error();
     const known=data.eventos.filter(e=>['ept','eja'].includes(e.id));
     if(known.length!==2)throw new Error();
     events=known;cities=data.municipios;connected=true;

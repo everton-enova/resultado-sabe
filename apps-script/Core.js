@@ -31,6 +31,11 @@ var RegistrationCore = (function () {
     return data;
   }
   function count(value) { return Number.isInteger(value) && value >= 0; }
+  /* Nome com o setor na frente, sem duplicar quando a planilha ja guarda "SGINF/DIE". */
+  function nomeCompleto(role) {
+    if (!role.setor) return role.nome;
+    return String(role.nome).indexOf(role.setor + '/') === 0 ? role.nome : role.setor + '/' + role.nome;
+  }
   function eventReady(event) {
     return !!event && count(event.limite) && event.limite > 0 && count(event.limiteMunicipio) && event.limiteMunicipio > 0 &&
       typeof event.abertura === 'string' && typeof event.encerramento === 'string' &&
@@ -100,10 +105,10 @@ var RegistrationCore = (function () {
     if (active.filter(function (r) { return r.grupoVagas === group; }).length >= role.limite) fail('ROLE_SOLD_OUT', 'As vagas desta função foram preenchidas.');
     if (role.tipo === 'MUNICIPAL' && active.filter(function (r) { return r.tipo === 'MUNICIPAL' && r.municipio === data.municipio; }).length >= event.limiteMunicipio) fail('MUNICIPALITY_SOLD_OUT', 'Este município já atingiu seu limite de representantes.');
     return { record: Object.assign({}, data, { eventoNome: event.nome,
-      funcao: role.setor ? role.setor + '/' + role.nome : role.nome, tipo: role.tipo, setor: role.setor || '',
+      funcao: nomeCompleto(role), tipo: role.tipo, setor: role.setor || '',
       nte: role.tipo === 'NTE' ? role.nte : (territory ? territory.nte : ''),
       grupoVagas: group, canonical: canonical, status: 'CONFIRMADA' }) };
   }
-  return { validCPF: validCPF, normalize: normalize, eventReady: eventReady, state: state, publicEvent: publicEvent, prepare: prepare };
+  return { validCPF: validCPF, nomeCompleto: nomeCompleto, normalize: normalize, eventReady: eventReady, state: state, publicEvent: publicEvent, prepare: prepare };
 }());
 if (typeof module !== 'undefined') module.exports = RegistrationCore;

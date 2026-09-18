@@ -218,7 +218,7 @@ function linhasMonitoramento_(funcoes) {
       linhas.push({ rotulo: PLURAL_NTE[chave] || (f.nome + ' dos NTE'),
         funcoes: funcoes.filter(function (g) { return g.tipo === 'NTE' && normal_(g.nome) === chave; }) });
     } else {
-      linhas.push({ rotulo: f.setor ? f.setor + '/' + f.nome : f.nome, funcoes: [f] });
+      linhas.push({ rotulo: RegistrationCore.nomeCompleto(f), funcoes: [f] });
     }
   });
   return linhas;
