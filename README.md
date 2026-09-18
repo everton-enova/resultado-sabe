@@ -78,7 +78,9 @@ Na aba **Funcoes**, cada evento possui suas próprias linhas:
 - Não renomeie `EventoID`, `FuncaoID` ou `GrupoVagas` após inscrições, pois são chaves para contagem. Alterações estruturais precisam de migração explícita.
 - Não crie linhas duplicadas para a mesma função/evento. Valores desconhecidos não são aceitos no envio.
 
-Na aba **Inscricoes**, cada linha gravada traz `Evento` (EPT ou EJA) logo depois de `DataHora`, seguindo a ordem de leitura da planilha antiga. `Setor` acompanha a unidade escolhida dentro de um setor, como SGINF, e fica vazio nas demais funções. `Observacoes` é uma coluna livre: o site nunca escreve nela, então anotações da equipe permanecem. As colunas técnicas (`InscricaoID`, `EventoID`, `FuncaoID`, `GrupoVagas`, `ChaveRequisicao`, `DadosRequisicao`) ficam no fim. O envio localiza cada coluna pelo nome do cabeçalho, então reordenar as colunas na planilha não quebra a gravação; renomeá-las, sim.
+Na aba **Inscricoes**, as colunas seguem a planilha base, na mesma ordem de leitura, com `Evento` (EPT ou EJA) logo depois de `DataHora`. `Setor` acompanha a unidade escolhida dentro de um setor, como SGINF, e fica vazio nas demais funções. `Observacoes` é uma coluna livre: o site nunca escreve nela, então anotações da equipe permanecem. As colunas técnicas (`InscricaoID`, `EventoID`, `FuncaoID`, `GrupoVagas`, `ChaveRequisicao`, `DadosRequisicao`) ficam no fim. Não há coluna `Municipio`: sem funções do tipo `MUNICIPAL`, ela sairia vazia em toda inscrição. `NTE` continua, preenchida nas 81 vagas de NTE de cada evento — diretor, ponto focal e coordenador pedagógico — e vazia nas institucionais.
+
+O envio localiza cada coluna pelo nome do cabeçalho. Isso significa que reordenar colunas não quebra a gravação, colunas a mais são ignoradas e, se representantes municipais voltarem, basta recriar a coluna `Municipio` que ela passa a ser preenchida sozinha. Renomear colunas, por outro lado, quebra.
 
 Na aba **MunicipiosNTE**, revise o catálogo herdado. NTE de representante municipal é derivado do município; funções de NTE usam o NTE da linha da função.
 

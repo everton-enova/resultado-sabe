@@ -3,9 +3,10 @@ var HEADERS = {
   Eventos: ['EventoID','Nome','Data','Local','Horario','Status','Abertura','Encerramento','LimiteTotal','LimitePorMunicipio'],
   Funcoes: ['EventoID','FuncaoID','Nome','Tipo','NTE','Limite','GrupoVagas','Ativa','Setor'],
   MunicipiosNTE: ['Municipio','NTE'],
-  /* Ordem de leitura humana primeiro, colunas tecnicas no fim. O envio localiza cada coluna
-     pelo nome do cabecalho, entao reordenar a aba na planilha nao quebra a gravacao. */
-  Inscricoes: ['DataHora','Evento','Nome','CPF','Telefone','Municipio','Email','Funcao','Setor','Tipo','NTE','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
+  /* Colunas da planilha base, na mesma ordem de leitura, sem Municipio: sem funcoes municipais
+     ele sairia vazio em toda inscricao. O envio localiza cada coluna pelo nome do cabecalho, entao
+     reordenar nao quebra nada e recriar a coluna Municipio volta a preenche-la sozinha. */
+  Inscricoes: ['DataHora','Evento','Nome','CPF','Telefone','Email','Funcao','Setor','NTE','Observacoes','InscricaoID','Status','Tipo','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
   Vagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
 /* Prazo acordado: os dois eventos encerram em 05/10 as 23:59 (America/Bahia).
