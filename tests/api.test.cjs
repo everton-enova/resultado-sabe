@@ -10,3 +10,22 @@ test('API protege segredo, trata falhas e limita métodos',async()=>{const oldUr
   res=response();await handler({method:'POST',headers:{},body:{}},res);assert.equal(res.statusCode,400);
   global.fetch=async()=>{throw new Error('secret details');};res=response();await handler({method:'GET',headers:{}},res);assert.equal(res.statusCode,503);assert.ok(!JSON.stringify(res.data).includes('secret details'));
 }finally{global.fetch=oldFetch;if(oldUrl)process.env.APPS_SCRIPT_URL=oldUrl;else delete process.env.APPS_SCRIPT_URL;if(oldSecret)process.env.APPS_SCRIPT_SECRET=oldSecret;else delete process.env.APPS_SCRIPT_SECRET;}});
+test('API repete quando o redirecionamento do Apps Script transforma o POST em GET',async()=>{
+  const oldUrl=process.env.APPS_SCRIPT_URL,oldSecret=process.env.APPS_SCRIPT_SECRET,oldFetch=global.fetch;
+  process.env.APPS_SCRIPT_URL='https://script.google.com/macros/s/test/exec';process.env.APPS_SCRIPT_SECRET='x'.repeat(40);
+  try{
+    let chamadas=0;
+    global.fetch=async()=>{chamadas++;return chamadas===1
+      ? {ok:true,json:async()=>({success:false,code:'METHOD_NOT_ALLOWED',message:'Use a integração do site.'})}
+      : {ok:true,json:async()=>({success:true,protocolo:'protocolo-1',evento:'EPT'})};};
+    let res=response();await handler({method:'GET',headers:{}},res);
+    assert.equal(chamadas,2);assert.equal(res.statusCode,200);assert.equal(res.data.protocolo,'protocolo-1');
+    // Duas respostas ruins seguidas nao viram resposta de negocio: o visitante recebe falha de conexao.
+    chamadas=0;global.fetch=async()=>{chamadas++;return {ok:true,json:async()=>({success:false,code:'METHOD_NOT_ALLOWED'})};};
+    res=response();await handler({method:'GET',headers:{}},res);
+    assert.equal(chamadas,2);assert.equal(res.statusCode,503);assert.equal(res.data.code,'CONNECTION_ERROR');
+    // Falha de rede na primeira tentativa tambem e repetida.
+    chamadas=0;global.fetch=async()=>{chamadas++;if(chamadas===1)throw new Error('rede');return {ok:true,json:async()=>({success:true,eventos:[],municipios:[]})};};
+    res=response();await handler({method:'GET',headers:{}},res);
+    assert.equal(chamadas,2);assert.equal(res.statusCode,200);
+  }finally{global.fetch=oldFetch;if(oldUrl)process.env.APPS_SCRIPT_URL=oldUrl;else delete process.env.APPS_SCRIPT_URL;if(oldSecret)process.env.APPS_SCRIPT_SECRET=oldSecret;else delete process.env.APPS_SCRIPT_SECRET;}});

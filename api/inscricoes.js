@@ -21,15 +21,30 @@ module.exports = async function handler(req, res) {
       body = Object.fromEntries(['eventoId','nome','cpf','telefone','email','funcaoId','municipio','requestId'].map(k => [k, body[k]]));
     } catch (_) { return send(400, { success: false, message: 'Envio inválido. Revise os campos.' }); }
   }
-  try {
+  const payload = JSON.stringify({ secret, action: req.method === 'GET' ? 'config' : 'inscrever', data: body });
+  const inicio = Date.now(), PRAZO = 25000;
+  const tentar = async prazo => {
     const response = await fetch(url, {
-      method: 'POST', redirect: 'follow', signal: AbortSignal.timeout(25000),
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret, action: req.method === 'GET' ? 'config' : 'inscrever', data: body })
+      method: 'POST', redirect: 'follow', signal: AbortSignal.timeout(prazo),
+      headers: { 'Content-Type': 'application/json' }, body: payload
     });
     if (!response.ok) throw new Error();
     const result = await response.json();
     if (typeof result.success !== 'boolean') throw new Error();
+    return result;
+  };
+  try {
+    let result = null;
+    // O Apps Script as vezes responde ao POST com um redirecionamento que vira GET, e cai no doGet.
+    // Repetir e seguro: o requestId torna a inscricao idempotente e a leitura de config nao tem efeito.
+    for (let tentativa = 0; tentativa < 2 && !result; tentativa++) {
+      const restante = PRAZO - (Date.now() - inicio);
+      if (restante < 3000) break;
+      let atual;
+      try { atual = await tentar(restante); } catch (_) { continue; }
+      if (atual.code !== 'METHOD_NOT_ALLOWED') result = atual;
+    }
+    if (!result) throw new Error();
     if (['UNAUTHORIZED','INTERNAL_ERROR'].includes(result.code)) throw new Error();
     return send(result.success ? 200 : (result.code === 'BUSY' ? 503 : 422), result);
   } catch (_) {
