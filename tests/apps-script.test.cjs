@@ -29,3 +29,53 @@ test('prazo semeado encerra os dois eventos em 05/10, mantendo o minuto 23:59 va
 function catalogo(){const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Catalogo.gs'),'utf8'),ctx);return ctx.CATALOGO_FUNCOES;}
 test('catalogo semeado reproduz a aba Vagas: 250 em cada evento, com as cotas que diferem',()=>{const {context}=harness();const funcoes=catalogo();const cota=(nome,id)=>{const f=funcoes.find(x=>x.nome===nome);return f.limites?f.limites[id]:f.limite;};const soma=id=>funcoes.reduce((t,f)=>t+(f.limites?f.limites[id]:f.limite),0);assert.equal(funcoes.length,98);assert.equal(funcoes.filter(f=>f.tipo==='NTE').length,81);['Diretor(a)','Ponto Focal do SABE','Coordenador(a) Pedagógico(a)'].forEach(nome=>{const linhas=funcoes.filter(f=>f.tipo==='NTE'&&f.nome===nome);assert.equal(linhas.length,27,nome);assert.equal(linhas.reduce((t,f)=>t+f.limite,0),27,nome);});assert.equal(soma('eja'),250);assert.equal(soma('ept'),250);assert.equal(cota('SUPROT','eja'),5);assert.equal(cota('SUPROT','ept'),10);assert.equal(cota('SUPED','eja'),10);assert.equal(cota('SUPED','ept'),5);[['IAT',8],['SUPEC',5],['SUDEPE',2],['SGINF/DIE',13],['SGINF/DAI',4],['SGINF/DIROE',4],['CEEPE',2],['EGEPI',2],['FGV/DGPE',5],['IRDEB',2],['TCE',2],['APG',4],['GAB/SEC',5],['Gestão Escolar - Salvador',90],['EQUIPE SEC',6]].forEach(([nome,limite])=>{assert.equal(cota(nome,'eja'),limite,nome);assert.equal(cota(nome,'ept'),limite,nome);});assert.equal(funcoes.filter(f=>f.setor==='SGINF').length,3);assert.equal(funcoes.filter(f=>f.tipo==='MUNICIPAL').length,0);context.EVENTOS_PADRAO.forEach(row=>{const linha=Object.fromEntries(context.HEADERS.Eventos.map((h,i)=>[h,row[i]]));assert.equal(Number(linha.LimiteTotal),soma(linha.EventoID));});});
 test('linha gravada segue as colunas da planilha base, com Evento e NTE, sem Municipio',()=>{const h=harness();const cabecalho=h.context.HEADERS.Inscricoes;assert.equal(cabecalho.slice(0,9).join(','),'Data/Hora,Evento,Nome,CPF,Telefone,E-mail,Funcao,NTE,Observacoes');['Municipio','Setor','Tipo','EventoNome'].forEach(c=>assert.equal(cabecalho.indexOf(c),-1,c));assert.equal(h.post(h.payload()).success,true);const linha=h.rows[0].raw;assert.equal(linha.Evento,'EPT');assert.equal(linha.EventoID,'ept');assert.equal(linha['Data/Hora'],'2026-09-18T12:00:00-03:00');assert.equal(linha['E-mail'],'teste@example.invalid');assert.equal(linha.Observacoes,'');assert.equal(linha.Nome,'=Teste literal');});
+function painel(linhas, config, rows) {
+  const escritas = [];
+  const ctx = {RegistrationCore:core, PropertiesService:{getScriptProperties:()=>({getProperty:()=>'s'.repeat(40)})},
+    LockService:{getScriptLock:()=>({waitLock:()=>true,releaseLock:()=>{}})},
+    ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({setMimeType:()=>JSON.parse(t)})},
+    SpreadsheetApp:{flush:()=>{}}, ScriptApp:{getProjectTriggers:()=>[]}};
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'), ctx);
+  ctx.database_=()=>({getSheetByName:nome=>nome!=='Vagas'?null:({
+    getDataRange:()=>({getDisplayValues:()=>linhas}),
+    getRange:(linha,coluna,n,m)=>({setValues:v=>escritas.push({linha,coluna,valores:v})})
+  })});
+  ctx.painelVagas_(config, rows);
+  return escritas;
+}
+test('painel de vagas montado a mao recebe Inscritos e Disponiveis nos dois blocos',()=>{
+  const salvador='Diretores, vice-diretores e coordenadores pedagógicos das unidades escolares de Salvador participantes da avaliação';
+  const linhas=[
+    ['EJA','','','','','EPT','','',''],
+    ['Função / Instituição','Limite','Inscritos','Disponíveis','','Função / Instituição','Limite','Inscritos','Disponíveis'],
+    ['Diretores dos NTE','27','','','','Diretores dos NTE','27','',''],
+    ['SUPROT','5','','','','SUPROT','10','',''],
+    ['SGINF/DIE','13','','','','SGINF/DIE','13','',''],
+    [salvador,'90','','','',salvador,'90','',''],
+    ['TOTAL','250','','','','TOTAL','250','','']
+  ];
+  const funcoes=[];
+  ['ept','eja'].forEach(eventoId=>{
+    [1,2,3].forEach(n=>funcoes.push({eventoId,id:`nte-0${n}-diretor`,nome:'Diretor(a)',tipo:'NTE',nte:`NTE 0${n}`,limite:1,grupo:`nte-0${n}-diretor`,ativa:true}));
+    funcoes.push({eventoId,id:'suprot',nome:'SUPROT',tipo:'INSTITUCIONAL',limite:eventoId==='ept'?10:5,grupo:'suprot',ativa:true});
+    funcoes.push({eventoId,id:'sginf-die',nome:'SGINF/DIE',tipo:'INSTITUCIONAL',setor:'SGINF',limite:13,grupo:'sginf-die',ativa:true});
+    funcoes.push({eventoId,id:'gestao-escolar-salvador',nome:'Gestão Escolar - Salvador',tipo:'INSTITUCIONAL',limite:90,grupo:'gestao-escolar-salvador',ativa:true});
+  });
+  const config={eventos:[{id:'ept',nome:'EPT',limite:250},{id:'eja',nome:'EJA',limite:250}],funcoes,municipios:[]};
+  const rows=[
+    {eventoId:'eja',status:'CONFIRMADA',grupoVagas:'nte-01-diretor'},
+    {eventoId:'eja',status:'CONFIRMADA',grupoVagas:'nte-03-diretor'},
+    {eventoId:'eja',status:'CONFIRMADA',grupoVagas:'suprot'},
+    {eventoId:'ept',status:'CONFIRMADA',grupoVagas:'sginf-die'},
+    {eventoId:'ept',status:'CANCELADA',grupoVagas:'sginf-die'}
+  ];
+  const escritas=painel(linhas,config,rows);
+  assert.equal(escritas.length,2);
+  const eja=escritas.find(e=>e.coluna===3), ept=escritas.find(e=>e.coluna===8);
+  assert.equal(eja.linha,3); assert.equal(ept.linha,3);
+  // EJA: 2 dos 3 diretores de NTE, 1 de 5 na SUPROT, nada no resto, 3 no total
+  assert.equal(JSON.stringify(eja.valores),JSON.stringify([[2,1],[1,4],[0,13],[0,90],[3,247]]));
+  // EPT: so a inscricao confirmada de SGINF/DIE conta; a cancelada nao
+  assert.equal(JSON.stringify(ept.valores),JSON.stringify([[0,3],[0,10],[1,12],[0,90],[1,249]]));
+});

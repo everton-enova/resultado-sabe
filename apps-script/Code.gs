@@ -6,9 +6,8 @@ var HEADERS = {
   /* Colunas da planilha base, com Evento acrescentado e as tecnicas no fim. O envio localiza cada
      coluna pelo nome do cabecalho: reordenar nao quebra, colunas a mais sao ignoradas e recriar uma
      coluna conhecida (NTE, Municipio, Setor, Tipo) volta a preenche-la sem mudar codigo. */
+  /* A aba Vagas nao entra aqui: ela e montada a mao e o script so preenche Inscritos e Disponiveis. */
   Inscricoes: ['Data/Hora','Evento','Nome','CPF','Telefone','E-mail','Funcao','NTE','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
-  /* Painel gerado pelo menu. Nome proprio para nunca sobrescrever a aba Vagas montada a mao. */
-  PainelVagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
 /* Prazo acordado: os dois eventos encerram em 05/10 as 23:59 (America/Bahia).
    O segundo 59 mantem o minuto 23:59 inteiro dentro do prazo.
@@ -84,6 +83,8 @@ function doPost(e) {
       var row = header.map(function (h) { return values[h] === undefined ? '' : "'" + String(values[h]); });
       sheet.getRange(sheet.getLastRow()+1,1,1,row.length).setNumberFormat('@').setValues([row]);
       SpreadsheetApp.flush();
+      // Painel em tempo real. Falha aqui nunca invalida uma inscricao ja gravada.
+      try { painelVagas_(config_(), registrations_()); } catch (_) {}
       return json_({ success:true, protocolo:r.id, evento:r.eventoNome });
     } finally { lock.releaseLock(); }
   } catch (error) {
@@ -116,28 +117,82 @@ function prepararPlanilha() {
     }
   });
 }
+/* Comparacao tolerante a acento, caixa e espaco duplo, para casar rotulos escritos a mao. */
+function normal_(valor) {
+  return String(valor == null ? '' : valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+/* Traduz o rotulo do painel para as funcoes do catalogo que ele representa. As tres linhas de NTE
+   sao agregados dos 27 NTE; a linha longa de Salvador corresponde a Gestao Escolar - Salvador. */
+var PAPEIS_NTE = {
+  'diretores dos nte': 'Diretor(a)',
+  'pontos focais do sabe nos nte': 'Ponto Focal do SABE',
+  'coordenadores pedagogicos dos nte': 'Coordenador(a) Pedagogico(a)'
+};
+function funcoesDoRotulo_(rotulo, funcoes) {
+  var alvo = normal_(rotulo);
+  if (!alvo) return null;
+  if (PAPEIS_NTE[alvo]) {
+    var papel = PAPEIS_NTE[alvo];
+    return funcoes.filter(function (f) { return f.tipo === 'NTE' && normal_(f.nome) === papel.toLowerCase(); });
+  }
+  var diretas = funcoes.filter(function (f) { return normal_(f.nome) === alvo; });
+  if (diretas.length) return diretas;
+  if (alvo.indexOf('unidades escolares de salvador') >= 0)
+    return funcoes.filter(function (f) { return f.id === 'gestao-escolar-salvador'; });
+  return [];
+}
+/* Preenche Inscritos e Disponiveis do painel montado a mao, sem tocar em rotulo, limite ou formato.
+   Localiza cada bloco pelo cabecalho "Funcao / Instituicao" e o evento pelo titulo acima dele. */
+function painelVagas_(config, rows) {
+  var sheet = database_().getSheetByName('Vagas');
+  if (!sheet) return;
+  var valores = sheet.getDataRange().getDisplayValues();
+  var linhaCabecalho = -1, colunas = [];
+  for (var r = 0; r < valores.length && linhaCabecalho < 0; r++) {
+    for (var c = 0; c < valores[r].length; c++) {
+      if (normal_(valores[r][c]) === 'funcao / instituicao') { linhaCabecalho = r; colunas.push(c); }
+    }
+  }
+  if (linhaCabecalho < 1 || !colunas.length) return; // Painel fora do formato esperado: nao mexer.
+  colunas.forEach(function (coluna) {
+    var evento = null;
+    for (var acima = linhaCabecalho - 1; acima >= 0 && !evento; acima--) {
+      var titulo = normal_(valores[acima][coluna]);
+      evento = config.eventos.filter(function (e) { return normal_(e.nome) === titulo || normal_(e.id) === titulo; })[0];
+    }
+    if (!evento) return;
+    var ativas = config.funcoes.filter(function (f) { return f.eventoId === evento.id && f.ativa; });
+    var inscritas = rows.filter(function (r) { return r.eventoId === evento.id && r.status === 'CONFIRMADA'; });
+    var saida = [];
+    for (var linha = linhaCabecalho + 1; linha < valores.length; linha++) {
+      var rotulo = valores[linha][coluna];
+      if (normal_(rotulo) === 'total') {
+        saida.push([inscritas.length, Math.max(0, evento.limite - inscritas.length)]);
+        continue;
+      }
+      var funcoes = funcoesDoRotulo_(rotulo, ativas);
+      if (!funcoes || !funcoes.length) { saida.push(['', '']); continue; }
+      var grupos = {}, limite = 0;
+      funcoes.forEach(function (f) { grupos[f.grupo || f.id] = true; limite += (f.limite || 0); });
+      var usadas = inscritas.filter(function (r) { return grupos[r.grupoVagas]; }).length;
+      saida.push([usadas, Math.max(0, limite - usadas)]);
+    }
+    if (saida.length) sheet.getRange(linhaCabecalho + 2, coluna + 3, saida.length, 2).setValues(saida);
+  });
+}
 function atualizarPainelVagas() {
   var lock = LockService.getScriptLock();
   lock.waitLock(15000);
-  try {
-    var config = config_(), rows = registrations_(), data = [];
-    config.eventos.forEach(function (e) {
-      var active = rows.filter(function (r) { return r.eventoId === e.id && r.status === 'CONFIRMADA'; });
-      data.push([e.id,e.nome,'TOTAL DO EVENTO',e.limite,active.length,Math.max(0,e.limite-active.length)]);
-      var seen = {};
-      config.funcoes.filter(function (f) { return f.eventoId === e.id && f.ativa; }).forEach(function (f) {
-        var group = f.grupo || f.id;
-        if (seen[group]) return;
-        seen[group] = true;
-        var used = active.filter(function (r) { return r.grupoVagas === group; }).length;
-        data.push([e.id,e.nome,group,f.limite,used,Math.max(0,Math.min(f.limite-used,e.limite-active.length))]);
-      });
-    });
-    var sheet = database_().getSheetByName('PainelVagas');
-    if (sheet.getLastRow()>1) sheet.getRange(2,1,sheet.getLastRow()-1,6).clearContent();
-    if (data.length) sheet.getRange(2,1,data.length,6).setValues(data);
-  } finally { lock.releaseLock(); }
+  try { painelVagas_(config_(), registrations_()); } finally { lock.releaseLock(); }
+}
+/* Gatilho de um minuto como rede de seguranca; a atualizacao imediata acontece a cada inscricao. */
+function criarGatilhos() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'atualizarPainelVagas') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(1).create();
 }
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addToUi();
+  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Ativar atualizacao automatica', 'criarGatilhos').addToUi();
 }
