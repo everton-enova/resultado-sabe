@@ -3,7 +3,9 @@ var HEADERS = {
   Eventos: ['EventoID','Nome','Data','Local','Horario','Status','Abertura','Encerramento','LimiteTotal','LimitePorMunicipio'],
   Funcoes: ['EventoID','FuncaoID','Nome','Tipo','NTE','Limite','GrupoVagas','Ativa','Setor'],
   MunicipiosNTE: ['Municipio','NTE'],
-  Inscricoes: ['InscricaoID','EventoID','EventoNome','DataHora','Nome','CPF','Telefone','Email','FuncaoID','Funcao','Tipo','Municipio','NTE','GrupoVagas','Status','ChaveRequisicao','DadosRequisicao'],
+  /* Ordem de leitura humana primeiro, colunas tecnicas no fim. O envio localiza cada coluna
+     pelo nome do cabecalho, entao reordenar a aba na planilha nao quebra a gravacao. */
+  Inscricoes: ['DataHora','Evento','Nome','CPF','Telefone','Municipio','Email','Funcao','Setor','Tipo','NTE','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
   Vagas: ['EventoID','Evento','GrupoVagas','Limite','Inscritos','Disponiveis']
 };
 /* Prazo acordado: os dois eventos encerram em 05/10 as 23:59 (America/Bahia).
@@ -16,7 +18,7 @@ var EVENTOS_PADRAO = [
   ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-05T23:59:59-03:00',265,1]
 ];
 /* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
-var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'] };
+var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'], Inscricoes: ['Setor','Observacoes'] };
 function database_() {
   var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (!id) throw new Error('SPREADSHEET_ID ausente');
@@ -46,7 +48,7 @@ function config_() {
   return config;
 }
 function registrations_() {
-  return table_('Inscricoes').map(function (r) { return { id:r.InscricaoID, eventoId:r.EventoID, eventoNome:r.EventoNome, cpf:r.CPF, funcaoId:r.FuncaoID, grupoVagas:r.GrupoVagas, municipio:r.Municipio, tipo:r.Tipo, status:r.Status, requestId:r.ChaveRequisicao, canonical:r.DadosRequisicao }; });
+  return table_('Inscricoes').map(function (r) { return { id:r.InscricaoID, eventoId:r.EventoID, eventoNome:r.Evento, cpf:r.CPF, funcaoId:r.FuncaoID, grupoVagas:r.GrupoVagas, municipio:r.Municipio, tipo:r.Tipo, status:r.Status, requestId:r.ChaveRequisicao, canonical:r.DadosRequisicao }; });
 }
 function json_(data) { return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON); }
 function doGet() { return json_({ success:false, code:'METHOD_NOT_ALLOWED', message:'Use a integração do site.' }); }
@@ -69,11 +71,11 @@ function doPost(e) {
       if (result.existing) return json_({ success:true, protocolo:result.existing.id, evento:result.existing.eventoNome });
       var r = result.record;
       r.id = Utilities.getUuid();
-      var values = { InscricaoID:r.id, EventoID:r.eventoId, EventoNome:r.eventoNome,
+      var values = { InscricaoID:r.id, EventoID:r.eventoId, Evento:r.eventoNome,
         DataHora:Utilities.formatDate(new Date(), 'America/Bahia', "yyyy-MM-dd'T'HH:mm:ssXXX"), Nome:r.nome,
         CPF:r.cpf, Telefone:r.telefone, Email:r.email, FuncaoID:r.funcaoId, Funcao:r.funcao,
-        Tipo:r.tipo, Municipio:r.municipio, NTE:r.nte, GrupoVagas:r.grupoVagas, Status:r.status,
-        ChaveRequisicao:r.requestId, DadosRequisicao:r.canonical };
+        Setor:r.setor, Tipo:r.tipo, Municipio:r.municipio, NTE:r.nte, GrupoVagas:r.grupoVagas,
+        Status:r.status, ChaveRequisicao:r.requestId, DadosRequisicao:r.canonical };
       var sheet = database_().getSheetByName('Inscricoes');
       var header = sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];
       // Prefixo de texto impede fórmulas e preserva zeros iniciais.

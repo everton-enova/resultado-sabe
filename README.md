@@ -78,6 +78,8 @@ Na aba **Funcoes**, cada evento possui suas próprias linhas:
 - Não renomeie `EventoID`, `FuncaoID` ou `GrupoVagas` após inscrições, pois são chaves para contagem. Alterações estruturais precisam de migração explícita.
 - Não crie linhas duplicadas para a mesma função/evento. Valores desconhecidos não são aceitos no envio.
 
+Na aba **Inscricoes**, cada linha gravada traz `Evento` (EPT ou EJA) logo depois de `DataHora`, seguindo a ordem de leitura da planilha antiga. `Setor` acompanha a unidade escolhida dentro de um setor, como SGINF, e fica vazio nas demais funções. `Observacoes` é uma coluna livre: o site nunca escreve nela, então anotações da equipe permanecem. As colunas técnicas (`InscricaoID`, `EventoID`, `FuncaoID`, `GrupoVagas`, `ChaveRequisicao`, `DadosRequisicao`) ficam no fim. O envio localiza cada coluna pelo nome do cabeçalho, então reordenar as colunas na planilha não quebra a gravação; renomeá-las, sim.
+
 Na aba **MunicipiosNTE**, revise o catálogo herdado. NTE de representante municipal é derivado do município; funções de NTE usam o NTE da linha da função.
 
 Não editar a aba **Inscricoes** durante o recebimento de envios: o bloqueio protege rotinas do Apps Script, não edições humanas. A primeira versão não inclui fluxo administrativo de cancelamento, substituição ou lista de espera.
