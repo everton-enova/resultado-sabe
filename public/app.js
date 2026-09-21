@@ -20,6 +20,13 @@ function deadlineLabel(event) {
   return when.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',...zone}) +
     ' às ' + when.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',...zone});
 }
+/* Local e Horario sao digitados na planilha, onde <br> e o jeito natural de quebrar linha.
+   Continuamos gravando como texto (a planilha e editavel por varias pessoas; HTML dali nao
+   entra na pagina), entao traduzimos a marca para quebra real e deixamos o CSS respeita-la. */
+function textoPlanilha(valor) {
+  // O <br> costuma vir seguido de quebra real na celula: sem colapsar, sobra linha em branco.
+  return String(valor || '').replace(/<br\s*\/?>/gi, '\n').replace(/\s*\n\s*/g, '\n').trim();
+}
 function show(section) { for(const id of ['registration','success']) $(id).hidden = id !== section; }
 function option(select, value, name, disabled=false) { const o = new Option(name,value); o.disabled=disabled; select.add(o); }
 function resetSelect(id, placeholder) { $(id).replaceChildren(); option($(id),'',placeholder); }
@@ -67,7 +74,7 @@ function aplicarEvento() {
   selected=events[0]; if(!selected) return;
   clearErrors();
   $('event-date').textContent=dateLabel(selected.data);
-  $('event-time').textContent=selected.horario || 'A divulgar'; $('event-place').textContent=selected.local || 'A divulgar';
+  $('event-time').textContent=textoPlanilha(selected.horario) || 'A divulgar'; $('event-place').textContent=textoPlanilha(selected.local) || 'A divulgar';
   $('selected-label').textContent=selected.nome+' • '+dateLabel(selected.data);
   resetSelect('funcao','Selecione sua função');
   if(selected.funcoes.some(f=>f.tipo==='NTE' && usable(f))) option($('funcao'),'NTE','NTE');
@@ -155,8 +162,17 @@ $('form').addEventListener('submit',async e=>{
   } catch(_){feedback('Não foi possível confirmar a resposta. Tente novamente sem alterar os dados para recuperar seu envio.');}
   finally{busy=false;document.querySelectorAll('#form input,#form select').forEach(el=>el.disabled=false);updateState();}
 });
+/* Enquanto as vagas nao chegam, o esqueleto ocupa o lugar do formulario: campos vazios
+   convidam a preencher antes de haver o que escolher no campo de funcao. O piso de 400ms
+   evita o lampejo quando a resposta ja esta em cache. */
+const MIN_CARREGANDO = 400;
+function setLoading(on) {
+  loading = on;
+  document.documentElement.toggleAttribute('data-loading', on);
+}
 async function load() {
-  loading=true;
+  setLoading(true);
+  const inicio = Date.now();
   try {
     // Uma falha isolada da integração não deve empurrar o visitante para o modo offline.
     let data=null;
@@ -176,7 +192,10 @@ async function load() {
     connected=false; $('connection-notice').hidden=false;
     $('connection-notice').textContent='As inscrições estão em preparação ou temporariamente indisponíveis. Você pode conhecer o formulário e voltar mais tarde para se inscrever.';
     try {const response=await fetch('/catalogo.json');const catalog=await response.json();cities=catalog.municipios;events=defaults.filter(e=>e.id===EVENTO).map(e=>({...e,estado:'FECHADO',funcoes:catalog.funcoes,municipiosLotados:[]}));}catch(_){/* Nenhum envio é liberado sem API. */}
+  } finally {
+    const resta = MIN_CARREGANDO - (Date.now() - inicio);
+    if (resta > 0) await new Promise(pronto => setTimeout(pronto, resta));
+    setLoading(false); aplicarEvento();
   }
-  loading=false; aplicarEvento();
 }
 aplicarEvento();load();

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR" data-evento="ept" data-theme="ept">
+<html lang="pt-BR" data-evento="ept" data-theme="ept" data-loading>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -34,6 +34,11 @@
           <div class="step" id="selected-label"></div>
           <h2 id="form-title" tabindex="-1">Formulário de inscrição</h2>
           <p class="lead">Selecione sua função e preencha os dados.</p>
+          <div id="loading" class="loading" role="status">
+            <p class="loading-label"><span class="spinner" aria-hidden="true"></span>Carregando as informações do evento…</p>
+            <p class="helper">Estamos consultando as vagas disponíveis. Leva alguns segundos.</p>
+            <div class="skeleton" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
           <div id="countdown" class="countdown" hidden><p class="countdown-label" id="countdown-label"></p><div class="countdown-clock" id="countdown-clock" aria-hidden="true"><span><strong id="cd-dias">00</strong><small>dias</small></span><span><strong id="cd-horas">00</strong><small>horas</small></span><span><strong id="cd-minutos">00</strong><small>min</small></span><span><strong id="cd-segundos">00</strong><small>seg</small></span></div></div>
           <p id="connection-notice" class="notice" role="status">Carregando informações do evento…</p>
           <p id="form-status" class="notice" role="status"></p>
