@@ -4,6 +4,8 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const core=require('../apps-script/Core.js');
+const ARQUIVOS_SCRIPT=['Planilha.gs','Api.gs','Painel.gs','Monitoramento.gs','Menu.gs'];
+function carregaScript(alvo){for(const f of ARQUIVOS_SCRIPT)vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/'+f),'utf8'),alvo,{filename:f});}
 function harness() {
   let locked=false, writes=0, releases=0;
   const rows=[];
@@ -14,7 +16,7 @@ function harness() {
     ContentService:{MimeType:{JSON:'json'},createTextOutput:text=>({setMimeType:()=>JSON.parse(text)})},
     Utilities:{getUuid:()=> 'generated-protocol-'+(writes+1),formatDate:()=> '2026-09-18T12:00:00-03:00'},SpreadsheetApp:{flush:()=>{assert.equal(locked,true);}},
     CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})}};
-  vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'),context);
+  vm.createContext(context);carregaScript(context);
   context.config_=()=>{assert.equal(locked,true);return config;};
   context.registrations_=()=>{assert.equal(locked,true);return rows;};
   context.database_=()=>({getSheetByName:()=>({getLastColumn:()=>context.HEADERS.Inscricoes.length,getLastRow:()=>rows.length+1,getRange:(r)=>({getDisplayValues:()=>[context.HEADERS.Inscricoes],setNumberFormat:()=>({setValues:values=>{assert.equal(locked,true);assert.ok(values[0].every(v=>v===''||v.startsWith("'")));const v=Object.fromEntries(context.HEADERS.Inscricoes.map((h,i)=>[h,values[0][i].slice(1)]));rows.push({raw:v,id:v.InscricaoID,eventoId:v.EventoID,eventoNome:v.Evento,cpf:v.CPF,grupoVagas:v.GrupoVagas,status:v.Status,requestId:v.ChaveRequisicao,canonical:v.DadosRequisicao});writes++;}})})})});
@@ -37,7 +39,7 @@ function painel(linhas, config, rows) {
     ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({setMimeType:()=>JSON.parse(t)})},
     SpreadsheetApp:{flush:()=>{}}, ScriptApp:{getProjectTriggers:()=>[]}};
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'), ctx);
+  carregaScript(ctx);
   ctx.database_=()=>({getSheetByName:nome=>nome!=='Vagas'?null:({
     getDataRange:()=>({getDisplayValues:()=>linhas}),
     getRange:(linha,coluna,n,m)=>({setValues:v=>escritas.push({linha,coluna,valores:v})})
@@ -88,7 +90,7 @@ function monitor() {
     Utilities:{formatDate:()=>'18/09/2026 16:00:00'}, SpreadsheetApp:{flush:()=>{}}, ScriptApp:{getProjectTriggers:()=>[]},
     CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})}};
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'), ctx);
+  carregaScript(ctx);
   const encadeia=alvo=>new Proxy(alvo,{get:(o,k)=>k in o?o[k]:()=>encadeia(o)});
   const sheet={getMaxRows:()=>200,setFrozenRows:()=>{},setColumnWidth:()=>{},
     getRange:(linha,coluna,n,m)=>encadeia({setValues:v=>{escritas.push({linha,coluna,valores:v});return encadeia({});},
@@ -141,7 +143,7 @@ test('prepararPlanilha funciona sem Municipios.gs: a aba nasce so com o cabecalh
   vm.createContext(ctx);
   // So o catalogo de funcoes; CATALOGO_MUNICIPIOS fica indefinido de proposito.
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Catalogo.gs'),'utf8'),ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'),ctx);
+  carregaScript(ctx);
   assert.equal(ctx.CATALOGO_MUNICIPIOS,undefined);
   const encadeia=alvo=>new Proxy(alvo,{get:(o,k)=>k in o?o[k]:()=>encadeia(o)});
   const folha=nome=>({getLastRow:()=>0,setFrozenRows:()=>{},setColumnWidths:()=>{},
@@ -161,7 +163,7 @@ test('prepararPlanilha funciona sem Municipios.gs: a aba nasce so com o cabecalh
   assert.ok(registro.some(l=>l.includes('MunicipiosNTE (falta Municipios.gs)')),registro.join(' | '));
   assert.ok(!registro.some(l=>l.includes('falta Catalogo.gs')));
 });
-test('prepararPlanilha funciona so com Code.gs e Core.gs, sem catalogo nenhum',()=>{
+test('prepararPlanilha funciona so com os arquivos do script, sem catalogo nenhum',()=>{
   const escritas=[], registro=[];
   const ctx={RegistrationCore:core,
     PropertiesService:{getScriptProperties:()=>({getProperty:()=>'s'.repeat(40)})},
@@ -171,7 +173,7 @@ test('prepararPlanilha funciona so com Code.gs e Core.gs, sem catalogo nenhum',(
     ScriptApp:{getProjectTriggers:()=>[]},CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})},
     Logger:{log:t=>registro.push(String(t))}};
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'),ctx);
+  carregaScript(ctx);
   assert.equal(ctx.CATALOGO_FUNCOES,undefined);
   assert.equal(ctx.CATALOGO_MUNICIPIOS,undefined);
   const encadeia=alvo=>new Proxy(alvo,{get:(o,k)=>k in o?o[k]:()=>encadeia(o)});

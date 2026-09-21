@@ -12,10 +12,18 @@ Crie três arquivos com o conteúdo do repositório, mantendo os nomes:
 
 | Arquivo no Apps Script | Origem | Linhas | Quando é necessário |
 |---|---|---|---|
-| `Code.gs` | `apps-script/Code.gs` | ~325 | sempre |
-| `Core.gs` | `apps-script/Core.js` | ~115 | sempre |
-| `Catalogo.gs` | `apps-script/Catalogo.gs` | ~106 | opcional: semeia as cotas da aba `Funcoes` |
-| `Municipios.gs` | `apps-script/Municipios.gs` | ~420 | opcional: semeia a aba `MunicipiosNTE` |
+| `Planilha.gs` | `apps-script/Planilha.gs` | 58 | sempre |
+| `Api.gs` | `apps-script/Api.gs` | 56 | sempre |
+| `Painel.gs` | `apps-script/Painel.gs` | 69 | sempre |
+| `Monitoramento.gs` | `apps-script/Monitoramento.gs` | 88 | sempre |
+| `Menu.gs` | `apps-script/Menu.gs` | 76 | sempre |
+| `Core.gs` | `apps-script/Core.js` | 114 | sempre |
+| `Catalogo.gs` | `apps-script/Catalogo.gs` | 106 | opcional: semeia as cotas da aba `Funcoes` |
+| `Municipios.gs` | `apps-script/Municipios.gs` | 421 | opcional: semeia a aba `MunicipiosNTE` |
+
+Os arquivos são curtos de propósito. O editor do Apps Script trunca colagem longa, e o
+corte observado ficou em torno da **linha 100** — por isso o código está repartido, e não
+em um `Code.gs` único. Todos compartilham o mesmo escopo global; a ordem não importa.
 
 Copie sempre pelo arquivo **bruto** do GitHub (`raw.githubusercontent.com`), não pela
 página com destaque de sintaxe: ela carrega o conteúdo aos poucos e a cópia sai cortada.
@@ -23,7 +31,7 @@ Se a colagem truncar, o editor recusa salvar com `SyntaxError: Unexpected end of
 o número da linha em que o texto acabou. Confira o total de linhas contra a tabela acima.
 
 `Catalogo.gs` e `Municipios.gs` só são lidos por `prepararPlanilha`, e os dois são
-**opcionais**: o projeto funciona com `Code.gs` e `Core.gs` apenas. Sem eles, as abas
+**opcionais**: o projeto funciona com os cinco arquivos do script e o `Core.gs` apenas. Sem eles, as abas
 `Funcoes` e `MunicipiosNTE` nascem só com o cabeçalho, e `prepararPlanilha` avisa disso no
 registro de execução. Você preenche as cotas colando o `Funcoes.csv` do repositório.
 

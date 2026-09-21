@@ -40,7 +40,7 @@ Abra `http://127.0.0.1:4173`. Para conectar uma planilha de testes, copie `.env.
 
 1. Crie uma planilha Google Sheets vazia na conta responsável.
 2. Abra **Extensões → Apps Script** nessa planilha.
-3. Crie três arquivos de script: `Code`, `Core` e `Catalogo`. Cole, respectivamente, o conteúdo de `apps-script/Code.gs`, `apps-script/Core.js` e `apps-script/Catalogo.gs`. No editor Google, `Core` aparecerá como `.gs`; isso é esperado.
+3. Crie os arquivos de script com o conteúdo da pasta `apps-script/`: `Planilha`, `Api`, `Painel`, `Monitoramento`, `Menu` e `Core` são obrigatórios; `Catalogo` e `Municipios` só semeiam abas novas. Todos aparecem como `.gs` no editor Google, inclusive `Core`, que no repositório é `.js` porque também roda nos testes. Veja `INSTALACAO.md`.
 4. Nas configurações do projeto, use o fuso `America/Bahia`. O arquivo `apps-script/appsscript.json` contém o manifesto de referência.
 5. Em **Propriedades do script**, configure `SPREADSHEET_ID` com o ID da NOVA planilha e `API_SECRET` com um segredo aleatório de pelo menos 32 caracteres. Não cole o segredo no código nem o publique no GitHub.
 6. Execute `prepararPlanilha` e conceda acesso à nova planilha pela conta responsável. A função cria `Eventos`, `Funcoes`, `MunicipiosNTE`, `Inscricoes` e `Vagas`.
