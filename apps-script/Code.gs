@@ -127,7 +127,9 @@ function prepararPlanilha() {
       }); });
       sheet.getRange(2,1,roles.length,9).setValues(roles);
     }
-    if (name === 'MunicipiosNTE') {
+    // Municipios.gs e opcional: sem ele a aba nasce so com o cabecalho, e o site nao usa
+    // municipio enquanto nao houver funcao do tipo MUNICIPAL.
+    if (name === 'MunicipiosNTE' && typeof CATALOGO_MUNICIPIOS !== 'undefined' && CATALOGO_MUNICIPIOS.length) {
       sheet.getRange(2,1,CATALOGO_MUNICIPIOS.length,2).setValues(CATALOGO_MUNICIPIOS.map(function (m) { return [m.nome,m.nte]; }));
     }
   });

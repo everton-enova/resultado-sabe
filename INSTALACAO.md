@@ -10,11 +10,22 @@ Na planilha: **Extensões → Apps Script**. O projeto nasce vinculado a ela.
 
 Crie três arquivos com o conteúdo do repositório, mantendo os nomes:
 
-| Arquivo no Apps Script | Origem |
-|---|---|
-| `Code.gs` | `apps-script/Code.gs` |
-| `Core.gs` | `apps-script/Core.js` |
-| `Catalogo.gs` | `apps-script/Catalogo.gs` |
+| Arquivo no Apps Script | Origem | Linhas | Quando é necessário |
+|---|---|---|---|
+| `Code.gs` | `apps-script/Code.gs` | ~325 | sempre |
+| `Core.gs` | `apps-script/Core.js` | ~115 | sempre |
+| `Catalogo.gs` | `apps-script/Catalogo.gs` | ~106 | só para semear as abas de uma planilha nova |
+| `Municipios.gs` | `apps-script/Municipios.gs` | ~420 | opcional: só semeia a aba `MunicipiosNTE` |
+
+Copie sempre pelo arquivo **bruto** do GitHub (`raw.githubusercontent.com`), não pela
+página com destaque de sintaxe: ela carrega o conteúdo aos poucos e a cópia sai cortada.
+Se a colagem truncar, o editor recusa salvar com `SyntaxError: Unexpected end of input` e
+o número da linha em que o texto acabou. Confira o total de linhas contra a tabela acima.
+
+`Catalogo.gs` e `Municipios.gs` só são lidos por `prepararPlanilha`. Depois que as abas
+existem, o site passa a ler tudo da planilha, e mudar esses dois arquivos não altera nada
+no que está no ar. Sem `Municipios.gs`, a aba `MunicipiosNTE` nasce só com o cabeçalho —
+o que não afeta o formulário enquanto não houver função do tipo `MUNICIPAL`.
 
 Em **Configurações do projeto**, marque *Mostrar o arquivo de manifesto* e substitua
 `appsscript.json` pelo conteúdo de `apps-script/appsscript.json`. Ele fixa o fuso
