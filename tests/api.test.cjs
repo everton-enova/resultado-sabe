@@ -3,6 +3,21 @@ const assert=require('node:assert/strict');
 const handler=require('../api/inscricoes.js');
 function response(){return {headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.statusCode=n;return this;},json(data){this.data=data;return this;}};}
 test('API fecha quando a integração não está configurada',async()=>{const old=process.env.APPS_SCRIPT_URL;delete process.env.APPS_SCRIPT_URL;try{const res=response();await handler({method:'GET',headers:{}},res);assert.equal(res.statusCode,503);assert.equal(res.data.code,'NOT_CONFIGURED');}finally{if(old)process.env.APPS_SCRIPT_URL=old;}});
+test('resposta de configuração aponta a variável errada sem revelar valor',async()=>{const oldUrl=process.env.APPS_SCRIPT_URL,oldSecret=process.env.APPS_SCRIPT_SECRET;const segredo='s'.repeat(40);const casos=[
+  [undefined,segredo,'APPS_SCRIPT_URL ausente'],
+  ['https://script.google.com/macros/s/abc/exec/',segredo,'APPS_SCRIPT_URL fora do formato .../exec'],
+  ['https://script.google.com/macros/s/abc/dev',segredo,'APPS_SCRIPT_URL fora do formato .../exec'],
+  ['https://script.google.com/macros/s/abc/exec',undefined,'APPS_SCRIPT_SECRET ausente'],
+  ['https://script.google.com/macros/s/abc/exec','curto','APPS_SCRIPT_SECRET com menos de 32 caracteres']];
+  try{for(const [url,secret,esperado] of casos){
+    if(url===undefined)delete process.env.APPS_SCRIPT_URL;else process.env.APPS_SCRIPT_URL=url;
+    if(secret===undefined)delete process.env.APPS_SCRIPT_SECRET;else process.env.APPS_SCRIPT_SECRET=secret;
+    const res=response();await handler({method:'GET',headers:{}},res);
+    assert.equal(res.statusCode,503,esperado);assert.equal(res.data.code,'NOT_CONFIGURED',esperado);assert.equal(res.data.variavel,esperado);
+    const corpo=JSON.stringify(res.data);
+    if(url)assert.ok(!corpo.includes(url),'URL vazou: '+esperado);
+    if(secret)assert.ok(!corpo.includes(secret),'segredo vazou: '+esperado);
+  }}finally{if(oldUrl)process.env.APPS_SCRIPT_URL=oldUrl;else delete process.env.APPS_SCRIPT_URL;if(oldSecret)process.env.APPS_SCRIPT_SECRET=oldSecret;else delete process.env.APPS_SCRIPT_SECRET;}});
 test('API protege segredo, trata falhas e limita métodos',async()=>{const oldUrl=process.env.APPS_SCRIPT_URL,oldSecret=process.env.APPS_SCRIPT_SECRET,oldFetch=global.fetch;process.env.APPS_SCRIPT_URL='https://script.google.com/macros/s/test/exec';process.env.APPS_SCRIPT_SECRET='x'.repeat(40);try{
   let forwarded;global.fetch=async(url,options)=>{forwarded=JSON.parse(options.body);return {ok:true,json:async()=>({success:true,protocolo:'id',evento:'EPT'})};};
   let res=response();await handler({method:'POST',headers:{'content-type':'application/json'},body:{action:'config',secret:'client-secret',eventoId:'ept',nome:'Teste'}},res);assert.equal(forwarded.action,'inscrever');assert.equal(forwarded.secret,'x'.repeat(40));assert.equal(forwarded.data.secret,undefined);assert.equal(res.statusCode,200);

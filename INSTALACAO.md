@@ -202,6 +202,11 @@ data sem horário de fuso em outro formato qualquer — aí o evento fica `FECHA
    na linha da função escolhida e na linha `TOTAL`.
 5. Apague a linha de teste e rode **Atualizar painel de vagas** para zerar.
 
-Se o site continuar dizendo que as inscrições estão em preparação, o problema está entre
-a Vercel e o Apps Script: confira se a URL termina em `/exec`, se o segredo é idêntico
-dos dois lados e se a implantação está como *Qualquer pessoa*.
+Se o site continuar dizendo que as inscrições estão em preparação, abra
+`/api/inscricoes` do site no navegador. Vindo `"code":"NOT_CONFIGURED"`, o campo `variavel`
+da resposta diz qual das duas variáveis reprovou e por quê — o valor nunca é devolvido.
+Corrija na Vercel e **publique novamente**: variável nova só vale em build novo.
+
+Se a resposta trouxer `"success":true` e mesmo assim o envio estiver bloqueado, o problema
+está na planilha — veja `estado` no JSON: `FECHADO` é `Abertura` vazia ou `Status` fora de
+`ABERTO`, `EM_BREVE` é `Abertura` no futuro, `ESGOTADO` é vaga preenchida.

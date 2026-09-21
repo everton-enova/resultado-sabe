@@ -9,8 +9,16 @@ module.exports = async function handler(req, res) {
   }
   const url = process.env.APPS_SCRIPT_URL;
   const secret = process.env.APPS_SCRIPT_SECRET;
-  if (!url || !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url) || !secret || secret.length < 32)
-    return send(503, { success: false, code: 'NOT_CONFIGURED', message: 'As inscrições estão em preparação. Volte em breve.' });
+  /* "variavel" diz qual das duas reprovou, sem devolver o valor de nenhuma: com os dois sites
+     lendo a mesma planilha, so a mensagem generica nao distinguia variavel ausente de URL
+     fora do formato, e cada tentativa custava um redeploy as cegas. */
+  const configuracao = !url ? 'APPS_SCRIPT_URL ausente'
+    : !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url) ? 'APPS_SCRIPT_URL fora do formato .../exec'
+    : !secret ? 'APPS_SCRIPT_SECRET ausente'
+    : secret.length < 32 ? 'APPS_SCRIPT_SECRET com menos de 32 caracteres'
+    : null;
+  if (configuracao)
+    return send(503, { success: false, code: 'NOT_CONFIGURED', variavel: configuracao, message: 'As inscrições estão em preparação. Volte em breve.' });
   let body = {};
   if (req.method === 'POST') {
     try {
