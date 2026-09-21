@@ -8,6 +8,8 @@ test('resposta de configuração aponta a variável errada sem revelar valor',as
   ['https://script.google.com/macros/s/abc/exec/',segredo,'APPS_SCRIPT_URL fora do formato .../exec'],
   ['https://script.google.com/macros/s/abc/dev',segredo,'APPS_SCRIPT_URL fora do formato .../exec'],
   ['https://script.google.com/macros/s/abc/exec',undefined,'APPS_SCRIPT_SECRET ausente'],
+  ['','','APPS_SCRIPT_URL existe, mas está vazia'],
+  ['https://script.google.com/macros/s/abc/exec','','APPS_SCRIPT_SECRET existe, mas está vazia'],
   ['https://script.google.com/macros/s/abc/exec','curto','APPS_SCRIPT_SECRET com menos de 32 caracteres']];
   try{for(const [url,secret,esperado] of casos){
     if(url===undefined)delete process.env.APPS_SCRIPT_URL;else process.env.APPS_SCRIPT_URL=url;

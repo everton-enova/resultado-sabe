@@ -12,9 +12,11 @@ module.exports = async function handler(req, res) {
   /* "variavel" diz qual das duas reprovou, sem devolver o valor de nenhuma: com os dois sites
      lendo a mesma planilha, so a mensagem generica nao distinguia variavel ausente de URL
      fora do formato, e cada tentativa custava um redeploy as cegas. */
-  const configuracao = !url ? 'APPS_SCRIPT_URL ausente'
+  // Chave criada sem valor e um caso a parte de chave inexistente, e o conserto e outro.
+  const faltando = nome => process.env[nome] === undefined ? nome + ' ausente' : nome + ' existe, mas está vazia';
+  const configuracao = !url ? faltando('APPS_SCRIPT_URL')
     : !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url) ? 'APPS_SCRIPT_URL fora do formato .../exec'
-    : !secret ? 'APPS_SCRIPT_SECRET ausente'
+    : !secret ? faltando('APPS_SCRIPT_SECRET')
     : secret.length < 32 ? 'APPS_SCRIPT_SECRET com menos de 32 caracteres'
     : null;
   if (configuracao) {
