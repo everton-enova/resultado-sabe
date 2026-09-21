@@ -14,6 +14,7 @@ test('resposta de configuração aponta a variável errada sem revelar valor',as
     if(secret===undefined)delete process.env.APPS_SCRIPT_SECRET;else process.env.APPS_SCRIPT_SECRET=secret;
     const res=response();await handler({method:'GET',headers:{}},res);
     assert.equal(res.statusCode,503,esperado);assert.equal(res.data.code,'NOT_CONFIGURED',esperado);assert.equal(res.data.variavel,esperado);
+    assert.ok(Array.isArray(res.data.chavesEncontradas),esperado);assert.ok(res.data.chavesEncontradas.every(k=>/script/i.test(k)),esperado);
     const corpo=JSON.stringify(res.data);
     if(url)assert.ok(!corpo.includes(url),'URL vazou: '+esperado);
     if(secret)assert.ok(!corpo.includes(secret),'segredo vazou: '+esperado);

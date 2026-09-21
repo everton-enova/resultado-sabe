@@ -17,8 +17,16 @@ module.exports = async function handler(req, res) {
     : !secret ? 'APPS_SCRIPT_SECRET ausente'
     : secret.length < 32 ? 'APPS_SCRIPT_SECRET com menos de 32 caracteres'
     : null;
-  if (configuracao)
-    return send(503, { success: false, code: 'NOT_CONFIGURED', variavel: configuracao, message: 'As inscrições estão em preparação. Volte em breve.' });
+  if (configuracao) {
+    /* "ausente" ainda comporta tres causas: nome da chave digitado errado, variavel salva em
+       Preview em vez de Production, ou dominio apontando para outro projeto. Devolvemos os
+       NOMES das chaves parecidas (nunca os valores) e o EVENTO da build, que identifica o
+       projeto que atendeu. Nada aqui e segredo: os dois ja aparecem no HTML e na documentacao. */
+    const chaves = Object.keys(process.env).filter(k => /script/i.test(k)).sort();
+    return send(503, { success: false, code: 'NOT_CONFIGURED', variavel: configuracao,
+      evento: process.env.EVENTO || '(ausente)', chavesEncontradas: chaves,
+      message: 'As inscrições estão em preparação. Volte em breve.' });
+  }
   let body = {};
   if (req.method === 'POST') {
     try {
