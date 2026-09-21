@@ -12,7 +12,7 @@ Crie três arquivos com o conteúdo do repositório, mantendo os nomes:
 
 | Arquivo no Apps Script | Origem | Linhas | Quando é necessário |
 |---|---|---|---|
-| `Planilha.gs` | `apps-script/Planilha.gs` | 58 | sempre |
+| `Planilha.gs` | `apps-script/Planilha.gs` | 69 | sempre |
 | `Api.gs` | `apps-script/Api.gs` | 56 | sempre |
 | `Painel.gs` | `apps-script/Painel.gs` | 69 | sempre |
 | `Monitoramento.gs` | `apps-script/Monitoramento.gs` | 88 | sempre |
@@ -188,6 +188,10 @@ Mantenha as duas colunas como **texto simples**.
 
 Enquanto `Abertura` estiver vazia ou o `Status` não for `ABERTO`, o site mostra o
 formulário mas bloqueia o envio — de propósito, para dar para conferir tudo antes.
+
+Se o Sheets converter a célula em data e ela passar a aparecer como `21/09/2026 00:00:00`,
+tudo bem: o script entende esse formato e assume o fuso `-03:00`. O que **não** funciona é
+data sem horário de fuso em outro formato qualquer — aí o evento fica `FECHADO` sem aviso.
 
 ## 7. Conferir
 

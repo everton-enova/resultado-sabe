@@ -39,13 +39,24 @@ function table_(name) {
   });
 }
 function number_(v) { return String(v).trim() === '' ? NaN : Number(v); }
+/* Abertura e Encerramento sao texto ISO, mas basta o Sheets converter a celula em data para
+   getDisplayValues devolver "05/10/2026 23:59:59". Sem fuso, o evento reprovaria em silencio e
+   ficaria FECHADO sem explicacao, entao aceitamos tambem o formato exibido. -03:00 e fixo:
+   o manifesto prende o projeto a America/Bahia, que nao tem horario de verao. */
+function instante_(v) {
+  var t = String(v == null ? '' : v).trim();
+  var br = /^(\d{2})\/(\d{2})\/(\d{4})(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(t);
+  if (!br) return t;
+  function dois(n) { return ('0' + (n || '0')).slice(-2); }
+  return br[3] + '-' + br[2] + '-' + br[1] + 'T' + dois(br[4]) + ':' + dois(br[5]) + ':' + dois(br[6]) + '-03:00';
+}
 function config_() {
   var funcoes = table_('Funcoes').map(function (r) { return { eventoId:r.EventoID, id:r.FuncaoID, nome:r.Nome, tipo:r.Tipo, nte:r.NTE, limite:number_(r.Limite), grupo:r.GrupoVagas, ativa:r.Ativa === 'SIM', setor:r.Setor || '' }; });
   // Os 417 municipios so sao lidos quando alguma funcao municipal existe: sem isso, seriam
   // 417 linhas percorridas em toda requisicao para nada.
   var precisaMunicipios = funcoes.some(function (f) { return f.tipo === 'MUNICIPAL' && f.ativa; });
   var config = {
-    eventos: table_('Eventos').map(function (r) { return { id:r.EventoID, nome:r.Nome, data:r.Data, local:r.Local, horario:r.Horario, status:r.Status, abertura:r.Abertura, encerramento:r.Encerramento, limite:number_(r.LimiteTotal), limiteMunicipio:number_(r.LimitePorMunicipio) }; }),
+    eventos: table_('Eventos').map(function (r) { return { id:r.EventoID, nome:r.Nome, data:r.Data, local:r.Local, horario:r.Horario, status:r.Status, abertura:instante_(r.Abertura), encerramento:instante_(r.Encerramento), limite:number_(r.LimiteTotal), limiteMunicipio:number_(r.LimitePorMunicipio) }; }),
     funcoes: funcoes,
     municipios: precisaMunicipios ? table_('MunicipiosNTE').map(function (r) { return { nome:r.Municipio, nte:r.NTE }; }) : []
   };
