@@ -8,6 +8,23 @@ function json_(data) { return jsonTexto_(JSON.stringify(data)); }
    que faz o Apps Script enfileirar requisicao ate estourar o tempo do site. */
 var CACHE_CONFIG = 'config-publica', CACHE_SEGUNDOS = 15;
 function doGet() { return json_({ success:false, code:'METHOD_NOT_ALLOWED', message:'Use a integração do site.' }); }
+/* Protocolo no estilo de placa: ABC-1234, para a pessoa conseguir ditar por telefone.
+   Sem I, O e Q, que se confundem com 1 e 0 na leitura. Nao e segredo e nao da acesso a nada:
+   so identifica a inscricao, entao Math.random basta. Sorteia ate achar um livre, com a lista
+   de usados lida dentro do bloqueio, o que torna a unicidade exata e nao provavel. */
+var PROTOCOLO_LETRAS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+function protocolo_(usados) {
+  for (var tentativa = 0; tentativa < 50; tentativa++) {
+    var codigo = '';
+    for (var i = 0; i < 3; i++) codigo += PROTOCOLO_LETRAS.charAt(Math.floor(Math.random() * PROTOCOLO_LETRAS.length));
+    codigo += '-';
+    for (var d = 0; d < 4; d++) codigo += Math.floor(Math.random() * 10);
+    if (!usados[codigo]) return codigo;
+  }
+  // 50 repeticoes seguidas em 121 milhoes de combinacoes nao acontece por acaso: se acontecer,
+  // melhor um id feio e garantido do que dois inscritos com o mesmo protocolo.
+  return Utilities.getUuid();
+}
 function doPost(e) {
   try {
     if (!e || !e.postData || e.postData.contents.length > 10000) return json_({ success:false, code:'INVALID_INPUT', message:'Envio inválido.' });
@@ -27,10 +44,13 @@ function doPost(e) {
     if (!lock.tryLock(15000)) return json_({ success:false, code:'BUSY', message:'Há outros envios em andamento. Tente novamente em instantes.' });
     try {
       // Releitura dentro do bloqueio é obrigatória para conferir a última vaga.
-      var result = RegistrationCore.prepare(payload.data || {}, config_(), registrations_(), Date.now());
+      var linhas = registrations_();
+      var result = RegistrationCore.prepare(payload.data || {}, config_(), linhas, Date.now());
       if (result.existing) return json_({ success:true, protocolo:result.existing.id, evento:result.existing.eventoNome });
       var r = result.record;
-      r.id = Utilities.getUuid();
+      var usados = {};
+      for (var n = 0; n < linhas.length; n++) usados[linhas[n].id] = true;
+      r.id = protocolo_(usados);
       // Chaves iguais aos cabecalhos; as que a aba nao tiver sao simplesmente ignoradas.
       var values = { InscricaoID:r.id, EventoID:r.eventoId, Evento:r.eventoNome,
         'Data/Hora':Utilities.formatDate(new Date(), 'America/Bahia', "yyyy-MM-dd'T'HH:mm:ssXXX"), Nome:r.nome,
