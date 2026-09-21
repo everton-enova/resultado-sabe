@@ -17,13 +17,20 @@ Crie três arquivos com o conteúdo do repositório, mantendo os nomes:
 | `Painel.gs` | `apps-script/Painel.gs` | 69 | sempre |
 | `Monitoramento.gs` | `apps-script/Monitoramento.gs` | 88 | sempre |
 | `Menu.gs` | `apps-script/Menu.gs` | 76 | sempre |
-| `Core.gs` | `apps-script/Core.js` | 114 | sempre |
+| `Core.gs` | `apps-script/Core.js` | 109 | sempre |
 | `Catalogo.gs` | `apps-script/Catalogo.gs` | 106 | opcional: semeia as cotas da aba `Funcoes` |
 | `Municipios.gs` | `apps-script/Municipios.gs` | 421 | opcional: semeia a aba `MunicipiosNTE` |
 
-Os arquivos são curtos de propósito. O editor do Apps Script trunca colagem longa, e o
-corte observado ficou em torno da **linha 100** — por isso o código está repartido, e não
-em um `Code.gs` único. Todos compartilham o mesmo escopo global; a ordem não importa.
+Os arquivos são curtos de propósito. Colagens longas chegam truncadas ao editor, com corte
+observado em torno da **linha 100** — por isso o código está repartido, e não em um
+`Code.gs` único. Todos compartilham o mesmo escopo global; a ordem não importa.
+
+> **Se a colagem truncar** (`SyntaxError: Unexpected end of input`), o problema quase sempre
+> está em *de onde* você copiou, não no arquivo. Páginas que rolam — a visualização de
+> arquivo do GitHub, um cartão de anexo, um visualizador embutido — renderizam só um pedaço,
+> e `Ctrl+A` copia apenas o que está renderizado. Baixe o arquivo e copie de um editor de
+> texto, ou abra a URL `raw.githubusercontent.com`, que entrega texto puro sem rolagem
+> virtual. Antes de salvar, confira o número da última linha contra a tabela acima.
 
 Copie sempre pelo arquivo **bruto** do GitHub (`raw.githubusercontent.com`), não pela
 página com destaque de sintaxe: ela carrega o conteúdo aos poucos e a cópia sai cortada.
