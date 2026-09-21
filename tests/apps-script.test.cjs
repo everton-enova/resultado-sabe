@@ -130,13 +130,14 @@ test('monitoramento escreve um bloco por evento, lado a lado',()=>{
   assert.equal(JSON.stringify(corpos[1].valores[0]),JSON.stringify(['IAT',8,0,8,0]));
 });
 test('prepararPlanilha funciona sem Municipios.gs: a aba nasce so com o cabecalho',()=>{
-  const escritas=[];
+  const escritas=[], registro=[];
   const ctx={RegistrationCore:core,
     PropertiesService:{getScriptProperties:()=>({getProperty:()=>'s'.repeat(40)})},
     LockService:{getScriptLock:()=>({waitLock:()=>true,releaseLock:()=>{}})},
     ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({setMimeType:()=>JSON.parse(t)})},
     Utilities:{formatDate:()=>'21/09/2026 10:00:00'},SpreadsheetApp:{flush:()=>{}},
-    ScriptApp:{getProjectTriggers:()=>[]},CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})}};
+    ScriptApp:{getProjectTriggers:()=>[]},CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})},
+    Logger:{log:t=>registro.push(String(t))}};
   vm.createContext(ctx);
   // So o catalogo de funcoes; CATALOGO_MUNICIPIOS fica indefinido de proposito.
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Catalogo.gs'),'utf8'),ctx);
@@ -156,4 +157,33 @@ test('prepararPlanilha funciona sem Municipios.gs: a aba nasce so com o cabecalh
   assert.equal(funcoes.valores.length,196);
   const eventos=escritas.filter(e=>e.nome==='Eventos'&&e.linha===2)[0];
   assert.equal(eventos.valores.length,2);
+  // a funcao avisa no registro o que ficou so com cabecalho
+  assert.ok(registro.some(l=>l.includes('MunicipiosNTE (falta Municipios.gs)')),registro.join(' | '));
+  assert.ok(!registro.some(l=>l.includes('falta Catalogo.gs')));
+});
+test('prepararPlanilha funciona so com Code.gs e Core.gs, sem catalogo nenhum',()=>{
+  const escritas=[], registro=[];
+  const ctx={RegistrationCore:core,
+    PropertiesService:{getScriptProperties:()=>({getProperty:()=>'s'.repeat(40)})},
+    LockService:{getScriptLock:()=>({waitLock:()=>true,releaseLock:()=>{}})},
+    ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({setMimeType:()=>JSON.parse(t)})},
+    Utilities:{formatDate:()=>'21/09/2026 10:00:00'},SpreadsheetApp:{flush:()=>{}},
+    ScriptApp:{getProjectTriggers:()=>[]},CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})},
+    Logger:{log:t=>registro.push(String(t))}};
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Code.gs'),'utf8'),ctx);
+  assert.equal(ctx.CATALOGO_FUNCOES,undefined);
+  assert.equal(ctx.CATALOGO_MUNICIPIOS,undefined);
+  const encadeia=alvo=>new Proxy(alvo,{get:(o,k)=>k in o?o[k]:()=>encadeia(o)});
+  const folha=nome=>({getLastRow:()=>0,setFrozenRows:()=>{},setColumnWidths:()=>{},
+    getRange:(linha,coluna,n,m)=>encadeia({setValues:v=>{escritas.push({nome,linha,valores:v});return encadeia({});}})});
+  ctx.database_=()=>({getSheetByName:()=>null,insertSheet:nome=>folha(nome)});
+  ctx.prepararPlanilha();
+  // as quatro abas nascem, Eventos com dados e as duas de catalogo so com cabecalho
+  assert.equal(new Set(escritas.map(e=>e.nome)).size,4);
+  assert.equal(escritas.filter(e=>e.nome==='Eventos'&&e.linha===2)[0].valores.length,2);
+  assert.equal(escritas.filter(e=>e.nome==='Funcoes').length,1);
+  assert.equal(escritas.filter(e=>e.nome==='MunicipiosNTE').length,1);
+  assert.ok(registro.some(l=>l.includes('falta Catalogo.gs')),registro.join(' | '));
+  assert.ok(registro.some(l=>l.includes('falta Municipios.gs')));
 });

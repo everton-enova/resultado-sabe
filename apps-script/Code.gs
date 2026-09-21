@@ -108,18 +108,21 @@ function doPost(e) {
   }
 }
 function prepararPlanilha() {
-  var ss = database_();
+  var ss = database_(), criadas = [], semDados = [];
   Object.keys(HEADERS).forEach(function (name) {
     var sheet = ss.getSheetByName(name);
     if (sheet && sheet.getLastRow() > 0) return; // Nunca sobrescrever configuração existente.
     sheet = sheet || ss.insertSheet(name);
+    criadas.push(name);
     sheet.getRange(1,1,1,HEADERS[name].length).setValues([HEADERS[name]]).setFontWeight('bold').setBackground('#1a3a8a').setFontColor('#ffffff');
     sheet.setFrozenRows(1);
     sheet.setColumnWidths(1,HEADERS[name].length,160);
     if (name === 'Eventos') {
       sheet.getRange(2,1,EVENTOS_PADRAO.length,10).setNumberFormat('@').setValues(EVENTOS_PADRAO);
     }
-    if (name === 'Funcoes') {
+    // Catalogo.gs tambem e opcional: sem ele a aba nasce so com o cabecalho e as cotas sao
+    // preenchidas a mao ou coladas. O site le tudo da planilha, entao nada disso o afeta.
+    if (name === 'Funcoes' && typeof CATALOGO_FUNCOES !== 'undefined' && CATALOGO_FUNCOES.length) {
       var roles = [];
       ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) {
         var limite = f.limites ? f.limites[id] : f.limite;
@@ -132,7 +135,11 @@ function prepararPlanilha() {
     if (name === 'MunicipiosNTE' && typeof CATALOGO_MUNICIPIOS !== 'undefined' && CATALOGO_MUNICIPIOS.length) {
       sheet.getRange(2,1,CATALOGO_MUNICIPIOS.length,2).setValues(CATALOGO_MUNICIPIOS.map(function (m) { return [m.nome,m.nte]; }));
     }
+    if (name === 'Funcoes' && typeof CATALOGO_FUNCOES === 'undefined') semDados.push('Funcoes (falta Catalogo.gs)');
+    if (name === 'MunicipiosNTE' && typeof CATALOGO_MUNICIPIOS === 'undefined') semDados.push('MunicipiosNTE (falta Municipios.gs)');
   });
+  Logger.log(criadas.length ? 'Abas criadas: ' + criadas.join(', ') : 'Nada a criar: as abas ja existiam.');
+  if (semDados.length) Logger.log('Criadas so com o cabecalho: ' + semDados.join('; '));
 }
 /* Comparacao tolerante a acento, caixa e espaco duplo, para casar rotulos escritos a mao. */
 function normal_(valor) {
