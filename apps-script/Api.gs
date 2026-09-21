@@ -8,20 +8,25 @@ function json_(data) { return jsonTexto_(JSON.stringify(data)); }
    que faz o Apps Script enfileirar requisicao ate estourar o tempo do site. */
 var CACHE_CONFIG = 'config-publica', CACHE_SEGUNDOS = 15;
 function doGet() { return json_({ success:false, code:'METHOD_NOT_ALLOWED', message:'Use a integração do site.' }); }
-/* Protocolo no estilo de placa: ABC-1234, para a pessoa conseguir ditar por telefone.
+/* Protocolo curto para a pessoa guardar e ditar: 4 letras e 3 digitos embaralhados, em
+   posicoes que mudam a cada sorteio (K7R2-9DQ, nunca um bloco de letras seguido de numeros).
    Sem I, O e Q, que se confundem com 1 e 0 na leitura. Nao e segredo e nao da acesso a nada:
    so identifica a inscricao, entao Math.random basta. Sorteia ate achar um livre, com a lista
    de usados lida dentro do bloqueio, o que torna a unicidade exata e nao provavel. */
 var PROTOCOLO_LETRAS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
 function protocolo_(usados) {
   for (var tentativa = 0; tentativa < 50; tentativa++) {
-    var codigo = '';
-    for (var i = 0; i < 3; i++) codigo += PROTOCOLO_LETRAS.charAt(Math.floor(Math.random() * PROTOCOLO_LETRAS.length));
-    codigo += '-';
-    for (var d = 0; d < 4; d++) codigo += Math.floor(Math.random() * 10);
+    var chars = [], i;
+    for (i = 0; i < 4; i++) chars.push(PROTOCOLO_LETRAS.charAt(Math.floor(Math.random() * PROTOCOLO_LETRAS.length)));
+    for (i = 0; i < 3; i++) chars.push(String(Math.floor(Math.random() * 10)));
+    for (i = chars.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), troca = chars[i];
+      chars[i] = chars[j]; chars[j] = troca;
+    }
+    var codigo = chars.slice(0, 4).join('') + '-' + chars.slice(4).join('');
     if (!usados[codigo]) return codigo;
   }
-  // 50 repeticoes seguidas em 121 milhoes de combinacoes nao acontece por acaso: se acontecer,
+  // 50 repeticoes seguidas em bilhoes de combinacoes nao acontece por acaso: se acontecer,
   // melhor um id feio e garantido do que dois inscritos com o mesmo protocolo.
   return Utilities.getUuid();
 }

@@ -26,25 +26,32 @@ function harness() {
 }
 test('Apps Script relê e grava sob bloqueio; disputa da última vaga só grava uma linha',()=>{const h=harness();assert.equal(h.post(h.payload()).success,true);const other=h.post(h.payload({cpf:'11144477735',requestId:'request-00000000002'}));assert.equal(other.code,'SOLD_OUT');assert.equal(h.writes,1);assert.equal(h.releases,2);});
 test('Apps Script recupera protocolo após reenvio sem duplicar linha',()=>{const h=harness();const first=h.post(h.payload());const next=h.post(h.payload());assert.equal(next.protocolo,first.protocolo);assert.equal(h.writes,1);});
-test('protocolo sai no formato de placa, sem letras ambiguas e sem repetir',()=>{const h=harness();
-  const PLACA=/^[A-Z]{3}-\d{4}$/;
-  const vistos=new Set();
-  for(let i=0;i<400;i++){const c=h.context.protocolo_({});
-    assert.match(c,PLACA,'formato: '+c);
-    assert.ok(!/[IOQ]/.test(c.slice(0,3)),'letra ambigua: '+c);
+test('protocolo mistura letra e numero em posicoes que variam, sem repetir',()=>{const h=harness();
+  const FORMA=/^[A-Z0-9]{4}-[A-Z0-9]{3}$/;
+  const vistos=new Set(), posicoesComLetra=new Set(), posicoesComDigito=new Set();
+  for(let i=0;i<500;i++){const c=h.context.protocolo_({});
+    assert.match(c,FORMA,'formato: '+c);
+    const chars=c.replace('-','').split('');
+    assert.equal(chars.filter(x=>/[A-Z]/.test(x)).length,4,'letras: '+c);
+    assert.equal(chars.filter(x=>/[0-9]/.test(x)).length,3,'digitos: '+c);
+    assert.ok(!/[IOQ]/.test(c),'letra ambigua: '+c);
+    chars.forEach((x,n)=>(/[A-Z]/.test(x)?posicoesComLetra:posicoesComDigito).add(n));
     vistos.add(c);}
-  assert.ok(vistos.size>350,'sorteio pouco variado: '+vistos.size);
+  assert.equal(vistos.size,500,'protocolo repetido em 500 sorteios');
+  // Sem ordem fixa: toda posicao ja saiu letra e ja saiu numero.
+  assert.equal(posicoesComLetra.size,7,'posicoes que receberam letra: '+[...posicoesComLetra]);
+  assert.equal(posicoesComDigito.size,7,'posicoes que receberam digito: '+[...posicoesComDigito]);
   // Codigo ja usado nunca e devolvido: com o sorteio preso num valor so, cai no reserva.
   vm.runInContext('var sorteioOriginal = Math.random; Math.random = function(){return 0;};',h.context);
   const fixo=h.context.protocolo_({});
-  assert.equal(fixo,'AAA-0000');
+  assert.equal(h.context.protocolo_({}),fixo,'sorteio preso deveria repetir');
   const usados={};usados[fixo]=true;
   assert.notEqual(h.context.protocolo_(usados),fixo);
   vm.runInContext('Math.random = sorteioOriginal;',h.context);
   // E o que vai para a planilha e o mesmo que volta para a pessoa.
   const res=h.post(h.payload());
   assert.equal(res.success,true);
-  assert.match(res.protocolo,PLACA);
+  assert.match(res.protocolo,FORMA);
   assert.equal(h.rows[0].raw.InscricaoID,res.protocolo);});
 test('requisição concorrente sem bloqueio disponível recebe resposta temporária',()=>{const h=harness();h.hold();assert.equal(h.post(h.payload()).code,'BUSY');assert.equal(h.writes,0);h.unlock();assert.equal(h.post(h.payload()).success,true);});
 test('erro libera bloqueio e não expõe exceção; segredo errado não grava',()=>{const h=harness();const original=h.context.config_;h.context.config_=()=>{throw new Error('internal secret');};const result=h.post(h.payload());assert.equal(result.code,'INTERNAL_ERROR');assert.ok(!JSON.stringify(result).includes('internal secret'));assert.equal(h.releases,1);h.context.config_=original;assert.equal(h.post({...h.payload(),secret:'wrong'}).code,'UNAUTHORIZED');assert.equal(h.post(h.payload()).success,true);});

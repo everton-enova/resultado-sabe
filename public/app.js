@@ -159,7 +159,7 @@ $('form').addEventListener('submit',async e=>{
     if(!response.ok || !result.success){feedback(result.message || 'Não foi possível confirmar a inscrição.');return;}
     $('success-event').textContent='Sua participação no evento '+result.evento+' está confirmada.';
     $('protocol').textContent=result.protocolo;
-    $('protocol').classList.toggle('is-placa',/^[A-Z]{3}-\d{4}$/.test(result.protocolo)); $('form').reset(); request=null; show('success'); $('success-title').focus();
+    $('protocol').classList.toggle('is-placa',/^[A-Z0-9]{4}-[A-Z0-9]{3}$/.test(result.protocolo)); $('form').reset(); request=null; show('success'); $('success-title').focus();
   } catch(_){feedback('Não foi possível confirmar a resposta. Tente novamente sem alterar os dados para recuperar seu envio.');}
   finally{busy=false;document.querySelectorAll('#form input,#form select').forEach(el=>el.disabled=false);updateState();}
 });
