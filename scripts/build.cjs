@@ -11,7 +11,15 @@ const EVENTOS = {
    publicaria o site do EPT no dominio errado, sem erro nenhum. Localmente, ept e o padrao. */
 const naVercel = Boolean(process.env.VERCEL || process.env.CI);
 const informado = String(process.env.EVENTO || '').trim().toLowerCase();
-if (naVercel && !informado) throw new Error('EVENTO ausente. Defina EVENTO=ept ou EVENTO=eja nas variaveis do projeto.');
+if (naVercel && !informado) {
+  /* A Vercel injeta cada variavel so nos ambientes marcados. Com EVENTO apenas em Production,
+     o deploy de producao passa e o de preview falha aqui, o que chega como um e-mail de
+     "deployment failed" sem dizer o motivo. A mensagem nomeia o ambiente e o conserto. */
+  const ambiente = process.env.VERCEL_ENV || 'desconhecido';
+  throw new Error(`EVENTO ausente no ambiente "${ambiente}". Defina EVENTO=ept ou EVENTO=eja nas `
+    + `variaveis do projeto e marque tambem esse ambiente: a variavel so chega aos ambientes `
+    + `selecionados, entao marcar apenas Production faz o preview falhar exatamente aqui.`);
+}
 const evento = informado || 'ept';
 if (!EVENTOS[evento]) throw new Error(`EVENTO invalido: ${process.env.EVENTO}. Use ept ou eja.`);
 const { nome, cor, linha, rodape } = EVENTOS[evento];

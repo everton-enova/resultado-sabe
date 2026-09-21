@@ -173,6 +173,11 @@ variável estiver ausente (`EVENTO ausente`) ou com valor desconhecido (`EVENTO 
 É melhor o deploy parar do que publicar o site do EPT no domínio do EJA sem ninguém notar.
 Fora da Vercel, rodando na sua máquina, o padrão é `ept`.
 
+**Marque `EVENTO` também em Preview**, e não só em Production. A Vercel entrega cada
+variável apenas aos ambientes selecionados, então com ela só em Production o deploy de
+produção passa e todo push de branch gera um e-mail de *deployment failed*, com a build
+parando na trava acima. A mensagem de erro diz em qual ambiente faltou.
+
 Em *Settings → Domains*, defina o domínio de cada projeto. O `.vercel.app` sai do nome do
 projeto, então nomeie os projetos como os domínios acima.
 
