@@ -101,6 +101,11 @@ function sincronizarSupabase() {
   lock.waitLock(15000);
   try {
     var config = sincronizarConfigParaSupabase();
+    if (config && config.success === false && config.code === 'UNAUTHORIZED') {
+      Logger.log('O segredo do Supabase ainda não foi alinhado. Copie a linha abaixo, cole no SQL Editor do Supabase e execute; depois rode esta função de novo:');
+      Logger.log("update app_config set valor = '" + segredoSinc_() + "' where chave = 'sync_secret';");
+      return { config: config, enviadas: 0, conserto: 'update app_config set valor = ' + segredoSinc_() + " where chave = 'sync_secret'" };
+    }
     var enviadas = anotarInscricoesPendentes_();
     Logger.log('Supabase: config ' + JSON.stringify(config) + ' | inscrições enviadas: ' + enviadas);
     return { config: config, enviadas: enviadas };
