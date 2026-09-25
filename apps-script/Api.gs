@@ -44,6 +44,11 @@ function doPost(e) {
       cache.put(CACHE_CONFIG, texto, CACHE_SEGUNDOS);
       return jsonTexto_(texto);
     }
+    // Anotação de uma inscrição já gravada no Supabase: só escreve a linha, sem reconferir cota.
+    if (payload.action === 'anotar') {
+      var escritos = anotarRegistros_([payload.data || {}]);
+      return json_({ success:true, protocolo:(payload.data || {}).protocolo, anotado:escritos.length > 0 });
+    }
     if (payload.action !== 'inscrever') return json_({ success:false, code:'INVALID_ACTION', message:'Ação inválida.' });
     var lock = LockService.getScriptLock();
     if (!lock.tryLock(15000)) return json_({ success:false, code:'BUSY', message:'Há outros envios em andamento. Tente novamente em instantes.' });

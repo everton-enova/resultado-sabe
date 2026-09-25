@@ -72,5 +72,5 @@ function mostrarSegredo() {
   return segredo;
 }
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Montar painel de monitoramento', 'montarMonitoramento').addItem('Ativar atualizacao automatica', 'criarGatilhos').addToUi();
+  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Montar painel de monitoramento', 'montarMonitoramento').addItem('Ativar atualizacao automatica', 'criarGatilhos').addSeparator().addItem('Configurar Supabase', 'configurarSupabase').addItem('Sincronizar Supabase agora', 'sincronizarSupabase').addItem('Ativar sincronizacao com Supabase', 'criarGatilhosSupabase').addToUi();
 }

@@ -104,6 +104,6 @@ var RegistrationCore = (function () {
       tipo: role.tipo, setor: role.setor || '', nte: role.tipo === 'NTE' ? role.nte : (territory ? territory.nte : ''),
       grupoVagas: group, canonical: canonical, status: 'CONFIRMADA' }) };
   }
-  return { validCPF: validCPF, nomeCompleto: nomeCompleto, normalize: normalize, eventReady: eventReady, state: state, publicEvent: publicEvent, prepare: prepare };
+  return { validCPF: validCPF, nomeCompleto: nomeCompleto, normalize: normalize, eventReady: eventReady, state: state, functionsFor: functionsFor, publicEvent: publicEvent, prepare: prepare };
 }());
 if (typeof module !== 'undefined') module.exports = RegistrationCore;
