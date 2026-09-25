@@ -6,7 +6,7 @@ function json_(data) { return jsonTexto_(JSON.stringify(data)); }
 /* A leitura de configuracao e identica para todo visitante e cara: le Eventos, Funcoes e
    Inscricoes inteiras. Guardar por alguns segundos derruba o numero de execucoes, que e o
    que faz o Apps Script enfileirar requisicao ate estourar o tempo do site. */
-var CACHE_CONFIG = 'config-publica', CACHE_SEGUNDOS = 15;
+var CACHE_CONFIG = 'config-publica', CACHE_SEGUNDOS = 60;
 function doGet() { return json_({ success:false, code:'METHOD_NOT_ALLOWED', message:'Use a integração do site.' }); }
 /* Protocolo curto para a pessoa guardar e ditar: 4 letras e 3 digitos embaralhados, em
    posicoes que mudam a cada sorteio (K7R2-9DQ, nunca um bloco de letras seguido de numeros).

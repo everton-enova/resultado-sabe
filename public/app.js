@@ -63,7 +63,9 @@ function updateState() {
   $('submit').textContent = busy ? 'Confirmando inscrição…' : open ? 'Confirmar inscrição' : (labels[selected?.estado] || labels.FECHADO);
   $('submit').setAttribute('aria-busy',String(busy));
   if (!selected) return;
-  $('form-status').textContent = open ? 'Inscrições abertas • '+selected.disponiveis+' vagas disponíveis no evento.' : (labels[selected.estado] || labels.FECHADO)+'. Você pode conhecer os campos do formulário; o envio está indisponível.';
+  const aviso = open ? '' : (labels[selected.estado] || labels.FECHADO)+'. Você pode conhecer os campos do formulário; o envio está indisponível.';
+  $('form-status').textContent = aviso;
+  $('form-status').hidden = !aviso;
 }
 function clearErrors() {
   document.querySelectorAll('[aria-invalid]').forEach(e=>e.removeAttribute('aria-invalid'));
@@ -176,28 +178,47 @@ function setLoading(on) {
   loading = on;
   document.documentElement.toggleAttribute('data-loading', on);
 }
+/* Último carregamento bom por evento: quando a API oscila, o visitante continua vendo as
+   vagas do último acesso em vez do aviso de "em preparação". O servidor valida todo envio. */
+const CACHE_KEY = 'inscricoes-config:' + EVENTO;
+function lerCache() {
+  try { const c = JSON.parse(localStorage.getItem(CACHE_KEY)); return c && c.evento ? c : null; } catch(_) { return null; }
+}
+function gravarCache(evento, municipios) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({evento, municipios})); } catch(_) {}
+}
 async function load() {
   setLoading(true);
   const inicio = Date.now();
   try {
     // Uma falha isolada da integração não deve empurrar o visitante para o modo offline.
-    let data=null;
+    let data=null, problema=null;
     for(let tentativa=0;tentativa<2 && !data;tentativa++) {
       try {
         const response=await fetch('/api/inscricoes',{cache:'no-store',signal:AbortSignal.timeout(30000)});
         const corpo=await response.json();
         if(response.ok && corpo.success && Array.isArray(corpo.eventos))data=corpo;
+        else problema={status:response.status,code:corpo && corpo.code,message:corpo && corpo.message};
       } catch(_){/* tenta de novo antes de desistir */}
     }
-    if(!data)throw new Error();
+    if(!data){ if(problema)console.warn('[inscricoes] configuração indisponível',problema); throw new Error(); }
     const atual=data.eventos.find(e=>e.id===EVENTO);
     if(!atual)throw new Error();
     events=[atual];cities=data.municipios;connected=true;
+    gravarCache(atual,data.municipios);
     $('connection-notice').hidden=true;
   } catch(_) {
-    connected=false; $('connection-notice').hidden=false;
-    $('connection-notice').textContent='As inscrições estão em preparação ou temporariamente indisponíveis. Você pode conhecer o formulário e voltar mais tarde para se inscrever.';
-    try {const response=await fetch('/catalogo.json');const catalog=await response.json();cities=catalog.municipios;events=defaults.filter(e=>e.id===EVENTO).map(e=>({...e,estado:'FECHADO',funcoes:catalog.funcoes,municipiosLotados:[]}));}catch(_){/* Nenhum envio é liberado sem API. */}
+    const cache=lerCache();
+    if(cache) {
+      // Reaproveita o último carregamento bom: o servidor continua sendo quem decide a vaga.
+      events=[cache.evento];cities=cache.municipios||[];connected=true;
+      $('connection-notice').hidden=false;
+      $('connection-notice').textContent='Não foi possível atualizar as vagas agora. Mostrando as informações do último carregamento; algumas vagas podem ter mudado.';
+    } else {
+      connected=false; $('connection-notice').hidden=false;
+      $('connection-notice').textContent='As inscrições estão em preparação ou temporariamente indisponíveis. Você pode conhecer o formulário e voltar mais tarde para se inscrever.';
+      try {const response=await fetch('/catalogo.json');const catalog=await response.json();cities=catalog.municipios;events=defaults.filter(e=>e.id===EVENTO).map(e=>({...e,estado:'FECHADO',funcoes:catalog.funcoes,municipiosLotados:[]}));}catch(_){/* Nenhum envio é liberado sem API. */}
+    }
   } finally {
     const resta = MIN_CARREGANDO - (Date.now() - inicio);
     if (resta > 0) await new Promise(pronto => setTimeout(pronto, resta));

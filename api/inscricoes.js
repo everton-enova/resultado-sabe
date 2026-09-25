@@ -66,6 +66,11 @@ module.exports = async function handler(req, res) {
     }
     if (!result) throw new Error();
     if (['UNAUTHORIZED','INTERNAL_ERROR'].includes(result.code)) throw new Error();
+    // A configuração é igual para todo visitante e muda devagar: o CDN pode servir por alguns
+    // segundos, tirando o Apps Script do caminho crítico. "stale-while-revalidate" devolve a
+    // última cópia boa mesmo que a revalidação no fundo demore ou falhe, o que evita o aviso
+    // de "em preparação" enquanto o Google oscila. O POST continua sem cache.
+    if (result.success && req.method === 'GET') res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
     return send(result.success ? 200 : (result.code === 'BUSY' ? 503 : 422), result);
   } catch (_) {
     return send(503, { success: false, code: 'CONNECTION_ERROR', message: 'Não foi possível confirmar a resposta. Tente novamente sem alterar os dados para recuperar seu envio.' });

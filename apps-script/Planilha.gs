@@ -21,10 +21,14 @@ var EVENTOS_PADRAO = [
 ];
 /* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
 var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'], Inscricoes: ['Observacoes'] };
+var _planilha = null;
 function database_() {
+  // openById e caro e era repetido a cada aba lida. Numa execucao, basta abrir uma vez.
+  if (_planilha) return _planilha;
   var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (!id) throw new Error('SPREADSHEET_ID ausente');
-  return SpreadsheetApp.openById(id);
+  _planilha = SpreadsheetApp.openById(id);
+  return _planilha;
 }
 function table_(name) {
   var sheet = database_().getSheetByName(name);
