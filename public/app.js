@@ -77,7 +77,8 @@ function aplicarEvento() {
   $('event-time').textContent=textoPlanilha(selected.horario) || 'A divulgar'; $('event-place').textContent=textoPlanilha(selected.local) || 'A divulgar';
   $('selected-label').textContent=selected.nome+' • '+dateLabel(selected.data);
   resetSelect('funcao','Selecione sua função');
-  if(selected.funcoes.some(f=>f.tipo==='NTE' && usable(f))) option($('funcao'),'NTE','NTE');
+  const ntes=selected.funcoes.filter(f=>f.tipo==='NTE');
+  if(ntes.length) { const livre=ntes.some(usable); option($('funcao'),'NTE','NTE'+(livre?'':' — vagas preenchidas'),!livre); }
   if(selected.funcoes.some(f=>f.tipo==='MUNICIPAL' && usable(f))) option($('funcao'),'MUNICIPAL','Secretaria Municipal');
   const institucionais=selected.funcoes.filter(f=>f.tipo==='INSTITUCIONAL'), setoresVistos=new Set();
   for(const f of institucionais) {
@@ -107,7 +108,11 @@ function changeRole() {
   }
   if($('funcao').value==='NTE') {
     $('nte-field').hidden=false; $('nte').required=true;
-    [...new Set(selected.funcoes.filter(f=>f.tipo==='NTE' && usable(f)).map(f=>f.nte))].sort().forEach(n=>option($('nte'),n,n));
+    // Todo NTE aparece; os lotados ficam esmaecidos, mas visíveis.
+    [...new Set(selected.funcoes.filter(f=>f.tipo==='NTE').map(f=>f.nte))].sort().forEach(n=>{
+      const livre=selected.funcoes.some(f=>f.tipo==='NTE' && f.nte===n && usable(f));
+      option($('nte'),n,n+(livre?'':' — vagas preenchidas'),!livre);
+    });
   }
 }
 $('funcao').addEventListener('change',changeRole);
