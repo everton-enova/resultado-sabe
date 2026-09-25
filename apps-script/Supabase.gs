@@ -95,6 +95,25 @@ function anotarInscricoesPendentes_() {
   return escritos.length;
 }
 
+/* Migração (roda uma vez): leva para o Supabase as inscrições que já estão na planilha,
+   preservando protocolo e CPF e marcando como já enviadas. Pode rodar de novo: não duplica. */
+function importarInscricoesParaSupabase() {
+  var registros = table_('Inscricoes').map(function (r) { return {
+    protocolo: r.InscricaoID, evento_id: r.EventoID, nome: r.Nome, cpf: r.CPF, telefone: r.Telefone,
+    email: r['E-mail'], funcao_id: r.FuncaoID, funcao_nome: r.Funcao, grupo_vagas: r.GrupoVagas,
+    status: r.Status, chave: r.ChaveRequisicao, canonical: r.DadosRequisicao, nte: r.NTE }; });
+  var semChave = registros.filter(function (r) { return !r.protocolo || !r.evento_id || !r.funcao_id; }).length;
+  var total = 0;
+  for (var i = 0; i < registros.length; i += 200) {
+    var resultado = supabaseFetch_('/rpc/importar_inscricoes', { method: 'post',
+      body: { p_secret: segredoSinc_(), p_registros: registros.slice(i, i + 200) } });
+    if (resultado && resultado.success) total += (resultado.inseridos || 0);
+  }
+  Logger.log('Importação para o Supabase: ' + total + ' nova(s) de ' + registros.length + ' na planilha.');
+  if (semChave) Logger.log('Atenção: ' + semChave + ' linha(s) sem Protocolo/EventoID/FuncaoID não puderam ser importadas. Confira as colunas InscricaoID, EventoID e FuncaoID da aba Inscricoes.');
+  return total;
+}
+
 /* Sincronização completa. É o que o gatilho chama. */
 function sincronizarSupabase() {
   var lock = LockService.getScriptLock();
