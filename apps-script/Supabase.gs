@@ -90,9 +90,34 @@ function anotarRegistros_(registros) {
 function anotarInscricoesPendentes_() {
   var pendentes = supabaseFetch_('/rpc/listar_pendentes', { method: 'post', body: { p_secret: segredoSinc_(), p_limite: 100 } });
   if (!pendentes || !pendentes.length) return 0;
-  var escritos = anotarRegistros_(pendentes);
-  if (escritos.length) supabaseFetch_('/rpc/marcar_planilha', { method: 'post', body: { p_secret: segredoSinc_(), p_protocolos: escritos } });
-  return escritos.length;
+  anotarRegistros_(pendentes);
+  // Marca todas como enviadas: as que já estavam na aba também, para não reprocessar toda hora.
+  var protocolos = pendentes.map(function (r) { return r.protocolo; });
+  supabaseFetch_('/rpc/marcar_planilha', { method: 'post', body: { p_secret: segredoSinc_(), p_protocolos: protocolos } });
+  return protocolos.length;
+}
+
+/* Espelha a aba Inscricoes de volta para o Supabase: linhas criadas à mão e ajustes de
+   nome/telefone/e-mail/status feitos na planilha. Casa pelo protocolo (InscricaoID). */
+function sincronizarInscricoesPlanilha_() {
+  var registros = table_('Inscricoes').map(function (r) { return {
+    protocolo: r.InscricaoID, evento_id: r.EventoID, nome: r.Nome, cpf: r.CPF, telefone: r.Telefone,
+    email: r['E-mail'], funcao_id: r.FuncaoID, funcao_nome: r.Funcao, municipio: r.Municipio || '',
+    grupo_vagas: r.GrupoVagas, status: r.Status, chave: r.ChaveRequisicao, canonical: r.DadosRequisicao, nte: r.NTE }; });
+  var total = { inseridos: 0, atualizados: 0 };
+  for (var i = 0; i < registros.length; i += 200) {
+    var resultado = supabaseFetch_('/rpc/sincronizar_inscricoes', { method: 'post',
+      body: { p_secret: segredoSinc_(), p_registros: registros.slice(i, i + 200) } });
+    if (resultado && resultado.success) { total.inseridos += resultado.inseridos || 0; total.atualizados += resultado.atualizados || 0; }
+  }
+  return total;
+}
+
+/* Atalho de menu: só a ida planilha → Supabase. */
+function enviarInscricoesParaSupabase() {
+  var resultado = sincronizarInscricoesPlanilha_();
+  Logger.log('Planilha → Supabase: ' + JSON.stringify(resultado));
+  return resultado;
 }
 
 /* Migração (roda uma vez): leva para o Supabase as inscrições que já estão na planilha,
@@ -125,9 +150,10 @@ function sincronizarSupabase() {
       Logger.log("update app_config set valor = '" + segredoSinc_() + "' where chave = 'sync_secret';");
       return { config: config, enviadas: 0, conserto: 'update app_config set valor = ' + segredoSinc_() + " where chave = 'sync_secret'" };
     }
+    var inscricoes = sincronizarInscricoesPlanilha_();
     var enviadas = anotarInscricoesPendentes_();
-    Logger.log('Supabase: config ' + JSON.stringify(config) + ' | inscrições enviadas: ' + enviadas);
-    return { config: config, enviadas: enviadas };
+    Logger.log('Supabase: config ' + JSON.stringify(config) + ' | planilha→Supabase ' + JSON.stringify(inscricoes) + ' | Supabase→planilha ' + enviadas);
+    return { config: config, inscricoes: inscricoes, enviadas: enviadas };
   } finally { lock.releaseLock(); }
 }
 

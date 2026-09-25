@@ -72,5 +72,5 @@ function mostrarSegredo() {
   return segredo;
 }
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Montar painel de monitoramento', 'montarMonitoramento').addItem('Ativar atualizacao automatica', 'criarGatilhos').addSeparator().addItem('Configurar Supabase', 'configurarSupabase').addItem('Sincronizar Supabase agora', 'sincronizarSupabase').addItem('Importar inscricoes ja existentes', 'importarInscricoesParaSupabase').addItem('Ativar sincronizacao com Supabase', 'criarGatilhosSupabase').addToUi();
+  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Montar painel de monitoramento', 'montarMonitoramento').addItem('Ativar atualizacao automatica', 'criarGatilhos').addSeparator().addItem('Configurar Supabase', 'configurarSupabase').addItem('Sincronizar Supabase agora', 'sincronizarSupabase').addItem('Importar inscricoes ja existentes', 'importarInscricoesParaSupabase').addItem('Enviar inscricoes da planilha para o Supabase', 'enviarInscricoesParaSupabase').addItem('Ativar sincronizacao com Supabase', 'criarGatilhosSupabase').addToUi();
 }

@@ -357,6 +357,58 @@ begin
   return jsonb_build_object('success', true, 'inseridos', inseridos);
 end; $$;
 
+-- Espelha a aba Inscricoes de volta para o Supabase: insere linhas novas criadas à mão na
+-- planilha e atualiza nome/telefone/e-mail/status das existentes (casadas pelo protocolo).
+-- Não mexe em planilha_status nem em CPF. Rodar de novo não duplica nem bagunça.
+create or replace function sincronizar_inscricoes(p_secret text, p_registros jsonb)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  inseridos int := 0;
+  atualizados int := 0;
+begin
+  if p_secret is null or p_secret <> (select valor from app_config where chave = 'sync_secret') then
+    return jsonb_build_object('success', false, 'code', 'UNAUTHORIZED');
+  end if;
+
+  with dados as (
+    select x.protocolo, x.evento_id, x.nome, x.cpf, x.telefone, x.email, x.funcao_id, x.funcao_nome,
+           coalesce(nullif(x.chave, ''), x.protocolo) as chave, coalesce(x.canonical, '') as canonical,
+           coalesce(x.nte, '') as nte, coalesce(x.municipio, '') as municipio,
+           coalesce(nullif(x.status, ''), 'CONFIRMADA') as status, coalesce(x.grupo_vagas, '') as grupo_vagas
+    from jsonb_to_recordset(coalesce(p_registros, '[]'::jsonb)) as x(
+      protocolo text, evento_id text, nome text, cpf text, telefone text, email text, funcao_id text,
+      funcao_nome text, municipio text, grupo_vagas text, status text, chave text, canonical text, nte text)
+    where coalesce(x.protocolo, '') <> '' and coalesce(x.evento_id, '') <> '' and coalesce(x.funcao_id, '') <> ''
+  )
+  insert into inscricoes (protocolo, evento_id, nome, cpf, telefone, email, funcao_id, funcao_nome,
+    municipio, nte, setor, tipo, grupo_vagas, status, chave_requisicao, canonical, planilha_status)
+  select d.protocolo, d.evento_id, coalesce(d.nome, ''), coalesce(d.cpf, ''), coalesce(d.telefone, ''),
+    coalesce(d.email, ''), d.funcao_id, coalesce(d.funcao_nome, ''), d.municipio, coalesce(f.nte, d.nte),
+    coalesce(f.setor, ''), coalesce(f.tipo, 'INSTITUCIONAL'),
+    coalesce(nullif(d.grupo_vagas, ''), f.grupo_vagas, d.funcao_id),
+    d.status, d.chave, d.canonical, 'ENVIADA'
+  from dados d left join funcoes f on f.evento_id = d.evento_id and f.id = d.funcao_id
+  on conflict do nothing;
+  get diagnostics inseridos = row_count;
+
+  with dados as (
+    select x.protocolo, nullif(x.nome, '') as nome, nullif(x.telefone, '') as telefone,
+           nullif(x.email, '') as email, nullif(x.status, '') as status
+    from jsonb_to_recordset(coalesce(p_registros, '[]'::jsonb)) as x(
+      protocolo text, nome text, telefone text, email text, status text)
+    where coalesce(x.protocolo, '') <> ''
+  )
+  update inscricoes i
+  set nome = coalesce(d.nome, i.nome), telefone = coalesce(d.telefone, i.telefone),
+      email = coalesce(lower(d.email), i.email), status = coalesce(d.status, i.status)
+  from dados d
+  where i.protocolo = d.protocolo;
+  get diagnostics atualizados = row_count;
+
+  return jsonb_build_object('success', true, 'inseridos', inseridos, 'atualizados', atualizados);
+end; $$;
+
 create or replace function marcar_planilha(p_secret text, p_protocolos jsonb)
 returns jsonb
 language plpgsql security definer set search_path = public as $$
@@ -381,6 +433,7 @@ grant execute on function sincronizar_config(text,jsonb,jsonb,jsonb) to anon, au
 grant execute on function listar_pendentes(text,int) to anon, authenticated;
 grant execute on function marcar_planilha(text,jsonb) to anon, authenticated;
 grant execute on function importar_inscricoes(text,jsonb) to anon, authenticated;
+grant execute on function sincronizar_inscricoes(text,jsonb) to anon, authenticated;
 
 alter table eventos    enable row level security;
 alter table funcoes    enable row level security;

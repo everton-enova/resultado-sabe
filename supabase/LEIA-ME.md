@@ -38,13 +38,23 @@ No projeto do EPT e no do EJA (Production e Preview):
    - **onChange** — ao editar a planilha, as vagas vão para o Supabase em segundos;
    - **1 minuto** — rede de segurança e envio das inscrições pendentes.
 
-## Como o fluxo funciona
+## Como o fluxo funciona (dois sentidos)
 
 ```
-Inscrição → Supabase (grava e confirma) ──► Apps Script (anota na planilha)
-                                              ▲
-Planilha (edição de vagas) ──onChange/1min────┘
+Vagas/Eventos:   Planilha ──onChange / 1 min──► Supabase
+Inscrições:      Site (Supabase) ──anotação──► Planilha
+                 Planilha ──1 min (casa pelo protocolo)──► Supabase
 ```
 
 - O visitante nunca espera o Apps Script para ter a inscrição confirmada.
 - Se a anotação na planilha falhar, o gatilho de 1 minuto busca as pendentes e completa.
+- Linhas **criadas à mão** na aba Inscricoes sobem para o Supabase; ajustes de
+  **nome/telefone/e-mail/status** também. Cancelar no status (ex.: `CANCELADA`) libera a vaga.
+- O CPF não é alterado pelo sync da planilha, para não furar a trava de duplicidade.
+
+## Funções de menu
+
+- **Importar inscricoes ja existentes** — uso único, leva a planilha atual ao Supabase.
+- **Enviar inscricoes da planilha para o Supabase** — empurra a aba Inscricoes na hora.
+- **Sincronizar Supabase agora** — faz os dois sentidos de uma vez.
+- **Ativar sincronizacao com Supabase** — liga os gatilhos `onChange` e de 1 minuto.

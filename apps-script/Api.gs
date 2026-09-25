@@ -46,8 +46,11 @@ function doPost(e) {
     }
     // Anotação de uma inscrição já gravada no Supabase: só escreve a linha, sem reconferir cota.
     if (payload.action === 'anotar') {
-      var escritos = anotarRegistros_([payload.data || {}]);
-      return json_({ success:true, protocolo:(payload.data || {}).protocolo, anotado:escritos.length > 0 });
+      var registro = payload.data || {};
+      var escritos = anotarRegistros_([registro]);
+      // Já está na planilha: marca no Supabase para os gatilhos não reprocessarem.
+      try { if (registro.protocolo) supabaseFetch_('/rpc/marcar_planilha', { method:'post', body:{ p_secret:segredoSinc_(), p_protocolos:[registro.protocolo] } }); } catch (_) {}
+      return json_({ success:true, protocolo:registro.protocolo, anotado:escritos.length > 0 });
     }
     if (payload.action !== 'inscrever') return json_({ success:false, code:'INVALID_ACTION', message:'Ação inválida.' });
     var lock = LockService.getScriptLock();
