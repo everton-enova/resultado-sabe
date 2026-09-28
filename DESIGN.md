@@ -14,7 +14,7 @@ Fonte principal: `index.html`, `background.webp` e `brasao_estado.png` do reposi
 | Tela de escolha: neutra com cor só nos cartões | Decorrência | Sobre o preto, cada cartão mostra a sigla e a seta na cor do seu evento, antecipando o tema |
 | Campos condicionais de município e NTE | Formulário original | Mesma sequência, opções carregadas por evento |
 | Setor com unidades: SGINF → DAI/DIE/DIROE | Pedido do usuário | Mesma mecânica dos campos condicionais: o setor é uma opção só e abre o campo de unidade |
-| Monitoramento visual na planilha | Pedido do usuário | Aba própria com EJA e EPT lado a lado, nas cores do site, ocupação em porcentagem colorida; a aba Vagas do usuário recebe só Inscritos e Disponíveis |
+| Monitoramento visual na planilha | Pedido do usuário | Aba própria com EJA e EPT lado a lado, nas cores do site, ocupação em porcentagem colorida; o `Limite`/`TOTAL` vêm da coluna `Limite` da aba Vagas e a aba Vagas do usuário recebe só Inscritos e Disponíveis |
 | Cotas da aba Vagas da planilha base | Planilha do usuário | 250 por evento; SUPROT e SUPED diferem entre EJA e EPT; NTE com uma vaga por NTE em cada função, sem campo de município |
 | Página 404 na identidade do site | Pedido do usuário | Painel preto com a fotografia dessaturada, botão para a inscrição e redirecionamento automático por `meta refresh` |
 | Foco visível, rótulos e erros vinculados | Refero Design, craft-details | Navegação com teclado, erros por campo e anúncio de status |

@@ -45,14 +45,31 @@ function atualizarPainelVagas() {
   lock.waitLock(15000);
   try { var c = config_(), r = registrations_(); painelVagas_(c, r); monitoramento_(c, r); } finally { lock.releaseLock(); }
 }
-/* Gatilho de um minuto como rede de seguranca; a atualizacao imediata acontece a cada inscricao. */
+/* Ao editar a aba Vagas (o painel montado a mao), remonta os paineis na hora: o Limite
+digitado passa a valer no Monitoramento e em Disponiveis sem esperar o gatilho de cinco
+minutos. A marca PAINEL_EM_ATUALIZACAO impede que as escritas do proprio script disparem
+uma nova rodada em cima da atualizacao em andamento. */
+function aoEditarVagas(e) {
+  var nome = '';
+  try { nome = e && e.range ? e.range.getSheet().getName() : ''; } catch (_) { nome = ''; }
+  if (nome !== 'Vagas') return;
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('PAINEL_EM_ATUALIZACAO') === 'SIM') return;
+  props.setProperty('PAINEL_EM_ATUALIZACAO', 'SIM');
+  try { atualizarPainelVagas(); } finally { props.deleteProperty('PAINEL_EM_ATUALIZACAO'); }
+}
+/* Gatilho de cinco minutos como rede de seguranca; a atualizacao imediata acontece a cada
+   inscricao e na edicao da aba Vagas, pelo gatilho de edicao instalado aqui tambem. */
 function criarGatilhos() {
+  var ss = database_();
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'atualizarPainelVagas') ScriptApp.deleteTrigger(t);
+    var h = t.getHandlerFunction();
+    if (h === 'atualizarPainelVagas' || h === 'aoEditarVagas') ScriptApp.deleteTrigger(t);
   });
   // Cinco minutos: a atualizacao que importa acontece na propria inscricao; este gatilho so
   // cobre edicao manual da planilha, e de minuto em minuto ele competia com o site.
   ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(5).create();
+  ScriptApp.newTrigger('aoEditarVagas').forSpreadsheet(ss).onEdit().create();
 }
 /* Gera o segredo da integracao e ja grava em API_SECRET, para nao depender de terminal.
    Rode pelo editor do Apps Script (Executar) e leia o valor no registro de execucao.

@@ -1,6 +1,38 @@
 /* Projeto dividido em arquivos curtos de proposito: o editor do Apps Script trunca
    colagem longa. Todos compartilham o mesmo escopo global, a ordem nao importa. */
-/* Preenche Inscritos e Disponiveis do painel montado a mao na aba Vagas. */
+/* Le os Limites digitados na aba Vagas (o painel montado a mao) e devolve, por evento,
+   um mapa rotulo-normalizado -> limite, mais a chave 'total' do TOTAL. E a fonte do Limite
+   exibido no Monitoramento: o que a equipe digita em Vagas manda nas duas abas. */
+function limitesVagas_(config) {
+  var mapa = {};
+  var sheet = database_().getSheetByName('Vagas');
+  if (!sheet || typeof sheet.getDataRange !== 'function') return mapa;
+  var valores = sheet.getDataRange().getDisplayValues();
+  var linhaCabecalho = -1, colunas = [];
+  for (var r = 0; r < valores.length && linhaCabecalho < 0; r++) {
+    for (var c = 0; c < valores[r].length; c++) {
+      if (normal_(valores[r][c]) === 'funcao / instituicao') { linhaCabecalho = r; colunas.push(c); }
+    }
+  }
+  if (linhaCabecalho < 1 || !colunas.length) return mapa;
+  colunas.forEach(function (coluna) {
+    var evento = null;
+    for (var acima = linhaCabecalho - 1; acima >= 0 && !evento; acima--) {
+      var titulo = normal_(valores[acima][coluna]);
+      evento = config.eventos.filter(function (e) { return normal_(e.nome) === titulo || normal_(e.id) === titulo; })[0];
+    }
+    if (!evento) return;
+    var porEvento = mapa[evento.id] || (mapa[evento.id] = {});
+    for (var linha = linhaCabecalho + 1; linha < valores.length; linha++) {
+      var rotulo = normal_(valores[linha][coluna]);
+      if (!rotulo) continue;
+      // A coluna do Limite fica logo depois do rotulo, igual ao cabecalho que painelVagas_ ja le.
+      var limite = number_(valores[linha][coluna + 1]);
+      if (!isNaN(limite)) porEvento[rotulo] = limite;
+    }
+  });
+  return mapa;
+}
 /* Comparacao tolerante a acento, caixa e espaco duplo, para casar rotulos escritos a mao. */
 function normal_(valor) {
   return String(valor == null ? '' : valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -29,10 +61,12 @@ function funcoesDoRotulo_(rotulo, funcoes) {
   return [];
 }
 /* Preenche Inscritos e Disponiveis do painel montado a mao, sem tocar em rotulo, limite ou formato.
-   Localiza cada bloco pelo cabecalho "Funcao / Instituicao" e o evento pelo titulo acima dele. */
+   Localiza cada bloco pelo cabecalho "Funcao / Instituicao" e o evento pelo titulo acima dele.
+   O Limite de cada linha vem da propria aba Vagas; a soma das cotas e so reserva para linha em branco. */
 function painelVagas_(config, rows) {
   var sheet = database_().getSheetByName('Vagas');
   if (!sheet) return;
+  var limites = limitesVagas_(config);
   var valores = sheet.getDataRange().getDisplayValues();
   var linhaCabecalho = -1, colunas = [];
   for (var r = 0; r < valores.length && linhaCabecalho < 0; r++) {
@@ -50,17 +84,21 @@ function painelVagas_(config, rows) {
     if (!evento) return;
     var ativas = config.funcoes.filter(function (f) { return f.eventoId === evento.id && f.ativa; });
     var inscritas = rows.filter(function (r) { return r.eventoId === evento.id && r.status === 'CONFIRMADA'; });
+    var porEvento = limites[evento.id] || {};
     var saida = [];
     for (var linha = linhaCabecalho + 1; linha < valores.length; linha++) {
       var rotulo = valores[linha][coluna];
-      if (normal_(rotulo) === 'total') {
-        saida.push([inscritas.length, Math.max(0, evento.limite - inscritas.length)]);
+      var chave = normal_(rotulo);
+      if (chave === 'total') {
+        var total = typeof porEvento.total === 'number' ? porEvento.total : (evento.limite || 0);
+        saida.push([inscritas.length, Math.max(0, total - inscritas.length)]);
         continue;
       }
       var funcoes = funcoesDoRotulo_(rotulo, ativas);
       if (!funcoes || !funcoes.length) { saida.push(['', '']); continue; }
       var grupos = {}, limite = 0;
       funcoes.forEach(function (f) { grupos[f.grupo || f.id] = true; limite += (f.limite || 0); });
+      if (typeof porEvento[chave] === 'number') limite = porEvento[chave];
       var usadas = inscritas.filter(function (r) { return grupos[r.grupoVagas]; }).length;
       saida.push([usadas, Math.max(0, limite - usadas)]);
     }

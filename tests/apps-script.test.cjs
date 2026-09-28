@@ -105,12 +105,13 @@ test('painel de vagas montado a mao recebe Inscritos e Disponiveis nos dois bloc
   assert.equal(escritas.length,2);
   const eja=escritas.find(e=>e.coluna===3), ept=escritas.find(e=>e.coluna===8);
   assert.equal(eja.linha,3); assert.equal(ept.linha,3);
-  // EJA: 2 dos 3 diretores de NTE, 1 de 5 na SUPROT, nada no resto, 3 no total
-  assert.equal(JSON.stringify(eja.valores),JSON.stringify([[2,1],[1,4],[0,13],[0,90],[3,247]]));
+  // EJA: 2 dos 3 diretores de NTE, 1 de 5 na SUPROT, nada no resto, 3 no total.
+  // O Disponivel sai do Limite digitado na propria aba Vagas, nao da soma de cotas.
+  assert.equal(JSON.stringify(eja.valores),JSON.stringify([[2,25],[1,4],[0,13],[0,90],[3,247]]));
   // EPT: so a inscricao confirmada de SGINF/DIE conta; a cancelada nao
-  assert.equal(JSON.stringify(ept.valores),JSON.stringify([[0,3],[0,10],[1,12],[0,90],[1,249]]));
+  assert.equal(JSON.stringify(ept.valores),JSON.stringify([[0,27],[0,10],[1,12],[0,90],[1,249]]));
 });
-function monitor() {
+function monitor(vagas) {
   const escritas=[], formatos=[];
   const ctx={RegistrationCore:core, PropertiesService:{getScriptProperties:()=>({getProperty:()=>'s'.repeat(40)})},
     LockService:{getScriptLock:()=>({waitLock:()=>true,releaseLock:()=>{}})},
@@ -121,6 +122,7 @@ function monitor() {
   carregaScript(ctx);
   const encadeia=alvo=>new Proxy(alvo,{get:(o,k)=>k in o?o[k]:()=>encadeia(o)});
   const sheet={getMaxRows:()=>200,setFrozenRows:()=>{},setColumnWidth:()=>{},
+    getDataRange:()=>({getDisplayValues:()=>vagas||[]}),
     getRange:(linha,coluna,n,m)=>encadeia({setValues:v=>{escritas.push({linha,coluna,valores:v});return encadeia({});},
       setBackgrounds:c=>{formatos.push({linha,coluna,cores:c});return encadeia({});}})};
   ctx.database_=()=>({getSheetByName:()=>sheet,insertSheet:()=>sheet});
@@ -158,6 +160,42 @@ test('monitoramento escreve um bloco por evento, lado a lado',()=>{
   assert.equal(corpos[0].coluna,1); assert.equal(corpos[1].coluna,7);
   assert.equal(JSON.stringify(corpos[0].valores[0]),JSON.stringify(['IAT',8,1,7,0.125]));
   assert.equal(JSON.stringify(corpos[1].valores[0]),JSON.stringify(['IAT',8,0,8,0]));
+});
+test('Limite do Monitoramento segue o que foi digitado na aba Vagas',()=>{
+  const vagas=[
+    ['EJA','','','','','EPT','','',''],
+    ['Função / Instituição','Limite','Inscritos','Disponíveis','','Função / Instituição','Limite','Inscritos','Disponíveis'],
+    ['IAT','30','','','','IAT','12','',''],
+    ['TOTAL','300','','','','TOTAL','240','','']
+  ];
+  const m=monitor(vagas);
+  const funcoes=['ept','eja'].map(eventoId=>({eventoId,id:'iat',nome:'IAT',tipo:'INSTITUCIONAL',limite:8,grupo:'iat',ativa:true}));
+  const config={eventos:[{id:'ept',nome:'EPT',limite:250},{id:'eja',nome:'EJA',limite:250}],funcoes,municipios:[]};
+  m.ctx.monitoramento_(config,[{eventoId:'ept',status:'CONFIRMADA',grupoVagas:'iat'}]);
+  const corpos=m.escritas.filter(e=>e.linha===6);
+  assert.equal(corpos.length,2); // ept na coluna 1, eja na coluna 7
+  assert.equal(JSON.stringify(corpos[0].valores[0]),JSON.stringify(['IAT',12,1,11,1/12]));
+  assert.equal(JSON.stringify(corpos[0].valores[1]),JSON.stringify(['TOTAL',240,1,239,1/240]));
+  assert.equal(JSON.stringify(corpos[1].valores[0]),JSON.stringify(['IAT',30,0,30,0]));
+  assert.equal(JSON.stringify(corpos[1].valores[1]),JSON.stringify(['TOTAL',300,0,300,0]));
+});
+test('gatilho de edicao so age na aba Vagas e nao reentra',()=>{
+  const props={}; let chamadas=0;
+  const ctx={RegistrationCore:core,
+    PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
+    LockService:{getScriptLock:()=>({waitLock:()=>true,releaseLock:()=>{}})},
+    ContentService:{MimeType:{JSON:'json'},createTextOutput:t=>({setMimeType:()=>JSON.parse(t)})},
+    Utilities:{formatDate:()=>''},SpreadsheetApp:{flush:()=>{}},ScriptApp:{getProjectTriggers:()=>[]},
+    CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})}};
+  vm.createContext(ctx); carregaScript(ctx);
+  const evento=nome=>({range:{getSheet:()=>({getName:()=>nome})}});
+  // A atualizacao chama de novo o gatilho, como se as escritas do script gerassem edicao.
+  ctx.atualizarPainelVagas=()=>{chamadas++; ctx.aoEditarVagas(evento('Vagas'));};
+  ctx.aoEditarVagas(evento('Inscricoes'));
+  assert.equal(chamadas,0,'edicao fora de Vagas nao deve atualizar');
+  ctx.aoEditarVagas(evento('Vagas'));
+  assert.equal(chamadas,1,'reentrada durante a atualizacao deve ser ignorada');
+  assert.equal(props.PAINEL_EM_ATUALIZACAO,undefined,'marca deve ser limpa ao fim');
 });
 test('prepararPlanilha funciona sem Municipios.gs: a aba nasce so com o cabecalho',()=>{
   const escritas=[], registro=[];

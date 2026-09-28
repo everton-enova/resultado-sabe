@@ -34,16 +34,20 @@ function corOcupacao_(usadas, limite) {
   if (razao >= 0.8) return '#fdf3e0';
   return '#e8f5ed';
 }
-function blocoMonitoramento_(evento, funcoes, inscritas) {
+function blocoMonitoramento_(evento, funcoes, inscritas, limites) {
+  limites = limites || {};
   var corpo = [], cores = [];
   linhasMonitoramento_(funcoes).forEach(function (linha) {
     var grupos = {}, limite = 0;
     linha.funcoes.forEach(function (f) { grupos[f.grupo || f.id] = true; limite += (f.limite || 0); });
+    // O Limite exibido e o que foi digitado na aba Vagas; a soma das cotas so cobre linha em branco.
+    var daVagas = limites[normal_(linha.rotulo)];
+    if (typeof daVagas === 'number') limite = daVagas;
     var usadas = inscritas.filter(function (r) { return grupos[r.grupoVagas]; }).length;
     corpo.push([linha.rotulo, limite, usadas, Math.max(0, limite - usadas), limite ? usadas / limite : 0]);
     cores.push([corOcupacao_(usadas, limite)]);
   });
-  var total = evento.limite || 0;
+  var total = typeof limites.total === 'number' ? limites.total : (evento.limite || 0);
   corpo.push(['TOTAL', total, inscritas.length, Math.max(0, total - inscritas.length),
     total ? inscritas.length / total : 0]);
   cores.push([corOcupacao_(inscritas.length, total)]);
@@ -55,10 +59,13 @@ function monitoramento_(config, rows) {
   var sheet = ss.getSheetByName('Monitoramento') || ss.insertSheet('Monitoramento');
   var eventos = config.eventos.slice(0, 2);
   if (!eventos.length) return;
+  // O Limite do Monitoramento espelha a aba Vagas: mexer no Limite la reflete aqui.
+  var limites = limitesVagas_(config);
   var blocos = eventos.map(function (evento) {
     return blocoMonitoramento_(evento,
       config.funcoes.filter(function (f) { return f.eventoId === evento.id && f.ativa; }),
-      rows.filter(function (r) { return r.eventoId === evento.id && r.status === 'CONFIRMADA'; }));
+      rows.filter(function (r) { return r.eventoId === evento.id && r.status === 'CONFIRMADA'; }),
+      limites[evento.id] || {});
   });
   var altura = Math.max.apply(null, blocos.map(function (b) { return b.corpo.length; }));
   var largura = 6;

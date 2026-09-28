@@ -95,13 +95,15 @@ Se alguma dessas quatro abas já existir com conteúdo antigo, renomeie a antiga
 
 ## 4. Ligar a atualização automática
 
-Menu **Inscrições EPT / EJA → Ativar atualização automática**. Isso instala um gatilho
-de cinco minutos que recalcula o painel.
+Menu **Inscrições EPT / EJA → Ativar atualização automática**. Isso instala dois gatilhos:
+um de cinco minutos que recalcula o painel e um de edição, que atualiza na hora quando
+alguém mexe na aba `Vagas`. Se os gatilhos já existiam de uma versão anterior, rode o menu
+de novo para instalar também o gatilho de edição.
 
 O painel também é recalculado imediatamente a cada inscrição confirmada, dentro do
-mesmo bloqueio que grava a linha — essa é a atualização que importa. O gatilho é rede
-de segurança, para o caso de edição manual na planilha, e por isso é espaçado: de minuto
-em minuto ele competia com o site pelas execuções do Apps Script.
+mesmo bloqueio que grava a linha — essa é a atualização que importa. O gatilho de cinco
+minutos é rede de segurança, para o caso de edição manual na planilha, e por isso é
+espaçado: de minuto em minuto ele competia com o site pelas execuções do Apps Script.
 
 ### As duas visões
 
@@ -115,12 +117,21 @@ lota. A última linha é o `TOTAL` do evento, em negrito. As funções de NTE ap
 agregadas por papel — "Diretores dos NTE", 27 vagas — como no seu painel impresso.
 No topo fica a hora da última atualização.
 
+O `Limite` e o `TOTAL` exibidos aqui vêm da coluna `Limite` da aba `Vagas`. Mexeu no
+`Limite` em `Vagas`, o `Monitoramento` acompanha — na hora, pelo gatilho de edição. O que
+estiver em branco em `Vagas` cai para a soma das cotas da aba `Funcoes`.
+
 Para criar a aba na primeira vez, use o menu **Montar painel de monitoramento**.
 
-**Aba `Vagas`** — a sua, montada à mão. O script escreve **apenas** as colunas
-`Inscritos` e `Disponíveis` de cada bloco do seu painel. Rótulo, limite, cores e mesclagens continuam seus. Ele localiza os blocos pelo
-cabeçalho `Função / Instituição` e descobre o evento pelo título acima (`EJA` ou `EPT`),
-então mover os blocos de coluna não quebra nada; renomear o cabeçalho, sim.
+**Aba `Vagas`** — a sua, montada à mão. Ela manda no `Limite` das duas visões: o script lê a
+coluna `Limite` que você digita e escreve **apenas** as colunas `Inscritos` e `Disponíveis`
+de cada bloco, calculando `Disponíveis` a partir desse mesmo `Limite`. Rótulo, limite, cores
+e mesclagens continuam seus. Ele localiza os blocos pelo cabeçalho `Função / Instituição` e
+descobre o evento pelo título acima (`EJA` ou `EPT`), então mover os blocos de coluna não
+quebra nada; renomear o cabeçalho, sim.
+
+Atenção: quem libera ou bloqueia a inscrição no site é a cota da aba `Funcoes`. Se quiser que
+o site respeite um limite diferente do que está em `Funcoes`, ajuste as duas abas.
 
 ## 5. Publicar como aplicativo da Web
 
