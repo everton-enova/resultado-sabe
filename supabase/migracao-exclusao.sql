@@ -49,7 +49,7 @@ returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_ausentes int := 0;
-  v_teto int := greatest(1, coalesce(p_teto, 25));
+  v_teto int := greatest(0, coalesce(p_teto, 25)); -- 0 = so conta, nao remove
   v_lista text[];
 begin
   if p_secret is distinct from (select valor from app_config where chave = 'sync_secret') then

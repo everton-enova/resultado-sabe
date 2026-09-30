@@ -104,13 +104,29 @@ function sincronizarInscricoesPlanilha_() {
     protocolo: r.InscricaoID, evento_id: r.EventoID, nome: r.Nome, cpf: r.CPF, telefone: r.Telefone,
     email: r['E-mail'], funcao_id: r.FuncaoID, funcao_nome: r.Funcao, municipio: r.Municipio || '',
     grupo_vagas: r.GrupoVagas, status: r.Status, chave: r.ChaveRequisicao, canonical: r.DadosRequisicao, nte: r.NTE }; });
-  var total = { inseridos: 0, atualizados: 0 };
+  var total = { inseridos: 0, atualizados: 0, protocolos: [] };
+  registros.forEach(function (r) { var p = String(r.protocolo || '').trim(); if (p) total.protocolos.push(p); });
   for (var i = 0; i < registros.length; i += 200) {
     var resultado = supabaseFetch_('/rpc/sincronizar_inscricoes', { method: 'post',
       body: { p_secret: segredoSinc_(), p_registros: registros.slice(i, i + 200) } });
     if (resultado && resultado.success) { total.inseridos += resultado.inseridos || 0; total.atualizados += resultado.atualizados || 0; }
   }
   return total;
+}
+
+/* Apagar a linha na planilha vale como cancelamento. Quem decide e o banco: mandamos os
+   protocolos que a aba tem e ele remove o que sobrou, dentro das travas de remover_ausentes.
+   Lista vazia nem sai daqui — aba ilegivel nunca pode virar exclusao geral. Teto 0 e previa:
+   so conta, nunca remove. */
+function removerAusentes_(protocolos, teto) {
+  if (!protocolos || !protocolos.length) return { success: false, code: 'PLANILHA_VAZIA' };
+  return supabaseFetch_('/rpc/remover_ausentes', { method: 'post',
+    body: { p_secret: segredoSinc_(), p_protocolos: protocolos, p_teto: teto == null ? 25 : teto } });
+}
+
+function protocolosDaAba_() {
+  return table_('Inscricoes').map(function (r) { return String(r.InscricaoID || '').trim(); })
+    .filter(function (p) { return p; });
 }
 
 /* Atalho de menu: só a ida planilha → Supabase. */
@@ -151,18 +167,67 @@ function sincronizarSupabase() {
       return { config: config, enviadas: 0, conserto: 'update app_config set valor = ' + segredoSinc_() + " where chave = 'sync_secret'" };
     }
     var inscricoes = sincronizarInscricoesPlanilha_();
+    var removidas = removerAusentes_(inscricoes.protocolos);
+    if (removidas && removidas.code === 'EXCESSO') {
+      Logger.log('Exclusao em massa barrada: ' + removidas.ausentes + ' inscricoes do banco nao estao na aba, ' +
+        'acima do teto de ' + removidas.teto + '. Nada foi removido. Se a aba estiver incompleta, ' +
+        'restaure-a antes; se as exclusoes forem mesmo intencionais, rode removerAusentesAgora() e confirme.');
+    }
     var enviadas = anotarInscricoesPendentes_();
     // As pendentes acabaram de entrar na aba Inscricoes: reflete nos painéis sem esperar o
     // gatilho de cinco minutos. Falha aqui não desfaz a sincronização já concluída.
     if (enviadas) try { var c = config_(), r = registrations_(); painelVagas_(c, r); monitoramento_(c, r); } catch (erro) { Logger.log('Atualização dos painéis falhou: ' + erro); }
-    Logger.log('Supabase: config ' + JSON.stringify(config) + ' | planilha→Supabase ' + JSON.stringify(inscricoes) + ' | Supabase→planilha ' + enviadas);
-    return { config: config, inscricoes: inscricoes, enviadas: enviadas };
+    Logger.log('Supabase: config ' + JSON.stringify(config) + ' | planilha→Supabase ' + JSON.stringify(inscricoes) +
+      ' | removidas ' + JSON.stringify(removidas) + ' | Supabase→planilha ' + enviadas);
+    return { config: config, inscricoes: inscricoes, removidas: removidas, enviadas: enviadas };
   } finally { lock.releaseLock(); }
 }
 
 /* Dispara quando alguém edita a planilha: as vagas chegam ao Supabase em segundos. */
 function aoEditarPlanilha() {
   try { sincronizarConfigParaSupabase(); } catch (erro) { Logger.log('Sincronização na edição falhou: ' + erro); }
+}
+
+/* Traz de volta para a aba as inscricoes confirmadas que so existem no banco. Use quando a
+   planilha ficou para tras — nao duplica o que ja esta la. A aba se repovoa em alguns ciclos,
+   porque cada um traz ate 100. */
+function recarregarInscricoesDoSupabase() {
+  // Mesmo lock da anotacao vinda do site: sem ele, as duas escritas leem a aba ao mesmo tempo e
+  // o mesmo protocolo entra duas vezes.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var r = supabaseFetch_('/rpc/repovoar_planilha', { method: 'post', body: { p_secret: segredoSinc_() } });
+    Logger.log('Marcadas para voltar a planilha: ' + JSON.stringify(r));
+    var trazidas = anotarInscricoesPendentes_();
+    Logger.log('Trazidas agora: ' + trazidas + '. Rode de novo, ou aguarde a sincronizacao de 1 minuto, ate zerar.');
+    return { marcadas: r, trazidas: trazidas };
+  } finally { lock.releaseLock(); }
+}
+
+/* Escape manual para quando a exclusao em massa e mesmo intencional: o ciclo automatico barra
+   acima do teto de proposito, e aqui uma pessoa confirma o numero antes de remover. */
+function removerAusentesAgora() {
+  var previa = removerAusentes_(sincronizarInscricoesPlanilha_().protocolos, 0);
+  if (previa && previa.success) { Logger.log('Nada a remover: a aba ja bate com o banco.'); return previa; }
+  if (!previa || previa.code !== 'EXCESSO') { Logger.log('Resposta inesperada: ' + JSON.stringify(previa)); return previa; }
+  var ui = SpreadsheetApp.getUi();
+  var resposta = ui.alert('Remover inscricoes ausentes',
+    previa.ausentes + ' inscricoes estao no banco e nao estao na aba Inscricoes.\n\n' +
+    'Confirme que a aba esta completa antes de seguir: se ela estiver desatualizada, use ' +
+    '"Recarregar inscricoes do Supabase" em vez disto.\n\nRemover as ' + previa.ausentes + '?',
+    ui.ButtonSet.YES_NO);
+  if (resposta !== ui.Button.YES) { Logger.log('Cancelado por quem executou.'); return { success: false, code: 'CANCELADO' }; }
+  // A pergunta pode ficar minutos aberta. A lista e relida sob o lock, para que uma inscricao
+  // anotada pelo site nesse meio-tempo conte como presente, e o teto e o numero confirmado:
+  // se a conta mudou, nada e removido.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var r = removerAusentes_(protocolosDaAba_(), previa.ausentes);
+    Logger.log('Removidas: ' + JSON.stringify(r));
+    return r;
+  } finally { lock.releaseLock(); }
 }
 
 /* Gatilho de 1 minuto (rede de segurança) + onChange (quase instantâneo). */

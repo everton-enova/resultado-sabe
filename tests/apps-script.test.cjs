@@ -57,6 +57,81 @@ test('requisição concorrente sem bloqueio disponível recebe resposta temporá
 test('erro libera bloqueio e não expõe exceção; segredo errado não grava',()=>{const h=harness();const original=h.context.config_;h.context.config_=()=>{throw new Error('internal secret');};const result=h.post(h.payload());assert.equal(result.code,'INTERNAL_ERROR');assert.ok(!JSON.stringify(result).includes('internal secret'));assert.equal(h.releases,1);h.context.config_=original;assert.equal(h.post({...h.payload(),secret:'wrong'}).code,'UNAUTHORIZED');assert.equal(h.post(h.payload()).success,true);});
 test('prazo semeado encerra os dois eventos em 05/10, mantendo o minuto 23:59 valido',()=>{const {context}=harness();const esperado={ept:'2026-10-05T23:59:59-03:00',eja:'2026-10-05T23:59:59-03:00'};assert.equal(context.EVENTOS_PADRAO.length,2);context.EVENTOS_PADRAO.forEach(row=>{const linha=Object.fromEntries(context.HEADERS.Eventos.map((h,i)=>[h,row[i]]));assert.equal(linha.Encerramento,esperado[linha.EventoID]);const evento={id:linha.EventoID,status:'ABERTO',abertura:'2026-09-01T00:00:00-03:00',encerramento:linha.Encerramento,limite:Number(linha.LimiteTotal),limiteMunicipio:Number(linha.LimitePorMunicipio)};const prazo=Date.parse(linha.Encerramento);assert.equal(core.state(evento,Date.parse(linha.Encerramento.replace('23:59:59','23:59:00'))),'ABERTO');assert.equal(core.state(evento,prazo-1),'ABERTO');assert.equal(core.state(evento,prazo),'ENCERRADO');});});
 test('Abertura convertida em data pelo Sheets continua abrindo o evento',()=>{const {context}=harness();const iso='2026-09-21T00:00:00-03:00';assert.equal(context.instante_(iso),iso);assert.equal(context.instante_('21/09/2026 00:00:00'),iso);assert.equal(context.instante_('21/09/2026 9:05'),'2026-09-21T09:05:00-03:00');assert.equal(context.instante_('21/09/2026'),'2026-09-21T00:00:00-03:00');assert.equal(context.instante_(''),'');assert.equal(context.instante_(null),'');const evento={id:'ept',status:'ABERTO',abertura:context.instante_('21/09/2026 00:00:00'),encerramento:context.instante_('05/10/2026 23:59:59'),limite:250,limiteMunicipio:1};assert.equal(core.eventReady(evento),true);assert.equal(core.state(evento,Date.parse('2026-09-25T10:00:00-03:00')),'ABERTO');const fechado={...evento,abertura:''};assert.equal(core.state(fechado,Date.parse('2026-09-25T10:00:00-03:00')),'FECHADO');});
+/* A reconciliacao apaga inscricoes de verdade: cada trava dela tem teste proprio. */
+function supa(linhas, respostas) {
+  const chamadas = [];
+  const ctx = {
+    PropertiesService: { getScriptProperties: () => ({ getProperty: n => ({ SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'chave', API_SECRET: 's'.repeat(40) })[n], setProperty() {} }) },
+    UrlFetchApp: { fetch: (url, params) => {
+      const rota = url.split('/rest/v1')[1];
+      chamadas.push({ rota, corpo: params.payload ? JSON.parse(params.payload) : null });
+      const r = Object.prototype.hasOwnProperty.call(respostas || {}, rota) ? respostas[rota] : { success: true };
+      return { getResponseCode: () => 200, getContentText: () => JSON.stringify(r) };
+    } },
+    Logger: { log() {} }, SpreadsheetApp: { flush() {} },
+    LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+    Utilities: { formatDate: () => '2026-09-30T00:00:00-03:00' },
+  };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../apps-script/Supabase.gs'), 'utf8'), ctx, { filename: 'Supabase.gs' });
+  ctx.table_ = () => linhas;
+  ctx.sincronizarConfigParaSupabase = () => ({ success: true });
+  return { ctx, chamadas, remocoes: () => chamadas.filter(c => c.rota === '/rpc/remover_ausentes') };
+}
+const linha = p => ({ InscricaoID: p, EventoID: 'eja', Nome: 'Pessoa', CPF: '1', Telefone: '1', 'E-mail': 'a@b.c', FuncaoID: 'f', Funcao: 'F', GrupoVagas: 'g', Status: 'CONFIRMADA', ChaveRequisicao: 'k', DadosRequisicao: 'd', NTE: 'NTE 01' });
+
+test('aba ilegivel nunca vira exclusao geral: lista vazia nao chega ao banco', () => {
+  const h = supa([]);
+  assert.equal(h.ctx.removerAusentes_([]).code, 'PLANILHA_VAZIA');
+  assert.equal(h.ctx.removerAusentes_(null).code, 'PLANILHA_VAZIA');
+  assert.equal(h.remocoes().length, 0, 'nenhuma chamada de remocao pode sair com a aba vazia');
+});
+
+test('a remocao recebe exatamente os protocolos que estao na aba', () => {
+  const h = supa([linha('ABC1-234'), linha('XYZ9-876')]);
+  const enviados = h.ctx.sincronizarInscricoesPlanilha_().protocolos;
+  assert.equal(enviados.join(','), 'ABC1-234,XYZ9-876');
+  h.ctx.removerAusentes_(enviados);
+  const corpo = h.remocoes()[0].corpo;
+  assert.equal(corpo.p_protocolos.join(','), 'ABC1-234,XYZ9-876');
+  assert.equal(corpo.p_teto, 25);
+});
+
+test('excesso barra a remocao e o restante do ciclo segue', () => {
+  const h = supa([linha('ABC1-234')], { '/rpc/remover_ausentes': { success: false, code: 'EXCESSO', ausentes: 144, teto: 25 },
+    '/rpc/listar_pendentes': [] });
+  const r = h.ctx.sincronizarSupabase();
+  assert.equal(r.removidas.code, 'EXCESSO');
+  assert.equal(r.removidas.ausentes, 144);
+  // O ciclo nao pode parar na recusa: as pendentes continuam sendo buscadas.
+  assert.ok(h.chamadas.some(c => c.rota === '/rpc/listar_pendentes'), 'listar_pendentes deveria ter sido chamado');
+});
+
+test('o teto so sobe quando uma pessoa confirma', () => {
+  const h = supa([linha('ABC1-234')], { '/rpc/remover_ausentes': { success: false, code: 'EXCESSO', ausentes: 3, teto: 1 } });
+  let perguntou = false;
+  h.ctx.SpreadsheetApp.getUi = () => ({ ButtonSet: { YES_NO: 'yn' }, Button: { YES: 'yes' },
+    alert: (titulo, texto) => { perguntou = true; assert.ok(texto.includes('3'), 'o numero precisa aparecer na pergunta'); return 'nao'; } });
+  const r = h.ctx.removerAusentesAgora();
+  assert.equal(perguntou, true);
+  assert.equal(r.code, 'CANCELADO');
+  // Recusar precisa deixar o banco intocado: a unica chamada foi a previa, com teto 1.
+  assert.equal(h.remocoes().length, 1);
+  assert.equal(h.remocoes()[0].corpo.p_teto, 0);
+});
+
+test('a previa nunca remove, nem quando falta uma so', () => {
+  const h = supa([linha(' ABC1-234 ')], { '/rpc/remover_ausentes': { success: false, code: 'EXCESSO', ausentes: 1, teto: 0 } });
+  let perguntou = false;
+  h.ctx.SpreadsheetApp.getUi = () => ({ ButtonSet: { YES_NO: 'yn' }, Button: { YES: 'yes' }, alert: () => { perguntou = true; return 'yes'; } });
+  h.ctx.removerAusentesAgora();
+  assert.equal(perguntou, true, 'uma unica ausente tambem precisa de confirmacao');
+  const [previa, confirmada] = h.remocoes().map(c => c.corpo);
+  assert.equal(previa.p_teto, 0);
+  assert.equal(confirmada.p_teto, 1);
+  assert.equal(confirmada.p_protocolos.join(','), 'ABC1-234', 'protocolo chega sem espacos');
+});
+
 function catalogo(){const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../apps-script/Catalogo.gs'),'utf8'),ctx);return ctx.CATALOGO_FUNCOES;}
 test('catalogo semeado reproduz a aba Vagas: 250 em cada evento, com as cotas que diferem',()=>{const {context}=harness();const funcoes=catalogo();const cota=(nome,id)=>{const f=funcoes.find(x=>x.nome===nome);return f.limites?f.limites[id]:f.limite;};const soma=id=>funcoes.reduce((t,f)=>t+(f.limites?f.limites[id]:f.limite),0);assert.equal(funcoes.length,98);assert.equal(funcoes.filter(f=>f.tipo==='NTE').length,81);['Diretor(a)','Ponto Focal do SABE','Coordenador(a) Pedagógico(a)'].forEach(nome=>{const linhas=funcoes.filter(f=>f.tipo==='NTE'&&f.nome===nome);assert.equal(linhas.length,27,nome);assert.equal(linhas.reduce((t,f)=>t+f.limite,0),27,nome);});assert.equal(soma('eja'),250);assert.equal(soma('ept'),250);assert.equal(cota('SUPROT','eja'),5);assert.equal(cota('SUPROT','ept'),10);assert.equal(cota('SUPED','eja'),10);assert.equal(cota('SUPED','ept'),5);[['IAT',8],['SUPEC',5],['SUDEPE',2],['DIE',13],['DAI',4],['DIROE',4],['CEEPE',2],['EGEPI',2],['FGV/DGPE',5],['IRDEB',2],['TCE',2],['APG',4],['GAB/SEC',5],['Gestão Escolar - Salvador',90],['EQUIPE SEC',6]].forEach(([nome,limite])=>{assert.equal(cota(nome,'eja'),limite,nome);assert.equal(cota(nome,'ept'),limite,nome);});assert.equal(funcoes.filter(f=>f.setor==='SGINF').length,3);assert.equal(funcoes.filter(f=>f.tipo==='MUNICIPAL').length,0);context.EVENTOS_PADRAO.forEach(row=>{const linha=Object.fromEntries(context.HEADERS.Eventos.map((h,i)=>[h,row[i]]));assert.equal(Number(linha.LimiteTotal),soma(linha.EventoID));});});
 test('linha gravada segue as colunas da planilha base, com Evento e NTE, sem Municipio',()=>{const h=harness();const cabecalho=h.context.HEADERS.Inscricoes;assert.equal(cabecalho.slice(0,9).join(','),'Data/Hora,Evento,Nome,CPF,Telefone,E-mail,Funcao,NTE,Observacoes');['Municipio','Setor','Tipo','EventoNome'].forEach(c=>assert.equal(cabecalho.indexOf(c),-1,c));assert.equal(h.post(h.payload()).success,true);const linha=h.rows[0].raw;assert.equal(linha.Evento,'EPT');assert.equal(linha.EventoID,'ept');assert.equal(linha['Data/Hora'],'2026-09-18T12:00:00-03:00');assert.equal(linha['E-mail'],'teste@example.invalid');assert.equal(linha.Observacoes,'');assert.equal(linha.Nome,'=Teste literal');});

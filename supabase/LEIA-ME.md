@@ -49,8 +49,25 @@ Inscrições:      Site (Supabase) ──anotação──► Planilha
 - O visitante nunca espera o Apps Script para ter a inscrição confirmada.
 - Se a anotação na planilha falhar, o gatilho de 1 minuto busca as pendentes e completa.
 - Linhas **criadas à mão** na aba Inscricoes sobem para o Supabase; ajustes de
-  **nome/telefone/e-mail/status** também. Cancelar no status (ex.: `CANCELADA`) libera a vaga.
+  **nome/telefone/e-mail/status** também.
+- **Apagar a linha cancela a inscrição.** A sincronização manda ao banco os protocolos que a aba
+  tem, e o que não está mais lá sai da contagem de vagas (vira `REMOVIDA`, sem destruir o
+  histórico). Não é preciso acumular linhas `CANCELADA` na planilha.
 - O CPF não é alterado pelo sync da planilha, para não furar a trava de duplicidade.
+
+### Antes de confiar na exclusão: a aba precisa espelhar o banco
+
+A exclusão vale pela **ausência** da linha. Se a aba estiver incompleta, as inscrições que
+faltam nela parecem apagadas. Três travas impedem o estrago:
+
+1. **Aba vazia não remove nada.** Renomeada, ilegível ou recém-limpa nunca vira exclusão geral.
+2. **Só conta o que já foi escrito na aba.** Uma inscrição feita há segundos, ainda a caminho da
+   planilha, não é removida por estar ausente.
+3. **Teto de 25 por ciclo.** Acima disso nada é tocado e o número aparece no registro de execução.
+
+Se o registro acusar o teto, **não** insista: rode **Recarregar inscricoes do Supabase**, confira
+que a aba voltou a bater, e só então use **Remover inscricoes ausentes da aba**, que pergunta o
+número antes de remover.
 
 ## Funções de menu
 
@@ -58,3 +75,7 @@ Inscrições:      Site (Supabase) ──anotação──► Planilha
 - **Enviar inscricoes da planilha para o Supabase** — empurra a aba Inscricoes na hora.
 - **Sincronizar Supabase agora** — faz os dois sentidos de uma vez.
 - **Ativar sincronizacao com Supabase** — liga os gatilhos `onChange` e de 1 minuto.
+- **Recarregar inscricoes do Supabase** — traz de volta para a aba as inscrições confirmadas que
+  só existem no banco. Não duplica o que já está lá; cada rodada traz até 100.
+- **Remover inscricoes ausentes da aba** — escape manual para quando a exclusão em massa é mesmo
+  intencional. Mostra quantas serão removidas e espera confirmação.
