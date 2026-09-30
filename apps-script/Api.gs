@@ -47,10 +47,18 @@ function doPost(e) {
     // Anotação de uma inscrição já gravada no Supabase: só escreve a linha, sem reconferir cota.
     if (payload.action === 'anotar') {
       var registro = payload.data || {};
-      var escritos = anotarRegistros_([registro]);
-      // Já está na planilha: marca no Supabase para os gatilhos não reprocessarem.
-      try { if (registro.protocolo) supabaseFetch_('/rpc/marcar_planilha', { method:'post', body:{ p_secret:segredoSinc_(), p_protocolos:[registro.protocolo] } }); } catch (_) {}
-      return json_({ success:true, protocolo:registro.protocolo, anotado:escritos.length > 0 });
+      // Mesmo bloqueio das demais escritas: a sincronização de 1 minuto também grava na aba
+      // Inscricoes, e duas escritas simultâneas (getLastRow + setValues) perderiam uma linha.
+      var lock = LockService.getScriptLock();
+      if (!lock.tryLock(15000)) return json_({ success:false, code:'BUSY', message:'Há outros envios em andamento. Tente novamente em instantes.' });
+      try {
+        var escritos = anotarRegistros_([registro]);
+        // Já está na planilha: marca no Supabase para os gatilhos não reprocessarem.
+        try { if (registro.protocolo) supabaseFetch_('/rpc/marcar_planilha', { method:'post', body:{ p_secret:segredoSinc_(), p_protocolos:[registro.protocolo] } }); } catch (_) {}
+        // A vaga mudou: reflete nos painéis agora, sem depender do gatilho de cinco minutos.
+        if (escritos.length) try { var atual = config_(), linhas = registrations_(); painelVagas_(atual, linhas); monitoramento_(atual, linhas); } catch (_) {}
+        return json_({ success:true, protocolo:registro.protocolo, anotado:escritos.length > 0 });
+      } finally { lock.releaseLock(); }
     }
     if (payload.action !== 'inscrever') return json_({ success:false, code:'INVALID_ACTION', message:'Ação inválida.' });
     var lock = LockService.getScriptLock();

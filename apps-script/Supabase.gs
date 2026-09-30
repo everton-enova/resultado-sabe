@@ -152,6 +152,9 @@ function sincronizarSupabase() {
     }
     var inscricoes = sincronizarInscricoesPlanilha_();
     var enviadas = anotarInscricoesPendentes_();
+    // As pendentes acabaram de entrar na aba Inscricoes: reflete nos painéis sem esperar o
+    // gatilho de cinco minutos. Falha aqui não desfaz a sincronização já concluída.
+    if (enviadas) try { var c = config_(), r = registrations_(); painelVagas_(c, r); monitoramento_(c, r); } catch (erro) { Logger.log('Atualização dos painéis falhou: ' + erro); }
     Logger.log('Supabase: config ' + JSON.stringify(config) + ' | planilha→Supabase ' + JSON.stringify(inscricoes) + ' | Supabase→planilha ' + enviadas);
     return { config: config, inscricoes: inscricoes, enviadas: enviadas };
   } finally { lock.releaseLock(); }
