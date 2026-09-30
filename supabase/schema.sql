@@ -66,9 +66,13 @@ create table if not exists inscricoes (
   chave_requisicao text unique not null,
   canonical        text not null,
   planilha_status  text not null default 'PENDENTE',
-  criado_em        timestamptz not null default now(),
-  unique (evento_id, cpf)
+  criado_em        timestamptz not null default now()
 );
+
+-- Um CPF por evento, contando so inscricoes vivas: quem teve a linha apagada da planilha
+-- (REMOVIDA) ou foi cancelado pode se inscrever de novo, e o historico antigo fica guardado.
+create unique index if not exists inscricoes_cpf_ativo_idx on inscricoes (evento_id, cpf)
+  where status not in ('REMOVIDA', 'CANCELADA');
 
 create index if not exists inscricoes_evento_idx  on inscricoes (evento_id, status);
 create index if not exists inscricoes_grupo_idx   on inscricoes (evento_id, grupo_vagas, status);
@@ -175,7 +179,8 @@ begin
     return jsonb_build_object('success', false, 'code', 'EVENT_CLOSED', 'message', 'As inscrições deste evento não estão abertas.');
   end if;
 
-  if exists (select 1 from inscricoes where evento_id = p_evento_id and cpf = p_cpf) then
+  if exists (select 1 from inscricoes where evento_id = p_evento_id and cpf = p_cpf
+             and status not in ('REMOVIDA', 'CANCELADA')) then
     return jsonb_build_object('success', false, 'code', 'DUPLICATE_CPF', 'message', 'Este CPF já possui uma inscrição neste evento.');
   end if;
 
@@ -463,7 +468,12 @@ begin
   set nome = coalesce(d.nome, i.nome), telefone = coalesce(d.telefone, i.telefone),
       email = coalesce(lower(d.email), i.email), status = coalesce(d.status, i.status)
   from dados d
-  where i.protocolo = d.protocolo;
+  where i.protocolo = d.protocolo
+    -- Linha apagada e depois colada de volta na aba volta a valer, a nao ser que o CPF ja
+    -- tenha se inscrito de novo: reativar a antiga violaria o indice e travaria o lote todo.
+    and not (coalesce(d.status, i.status) not in ('REMOVIDA', 'CANCELADA')
+             and exists (select 1 from inscricoes o where o.evento_id = i.evento_id and o.cpf = i.cpf
+                           and o.id <> i.id and o.status not in ('REMOVIDA', 'CANCELADA')));
   get diagnostics atualizados = row_count;
 
   return jsonb_build_object('success', true, 'inseridos', inseridos, 'atualizados', atualizados);
