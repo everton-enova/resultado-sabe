@@ -76,6 +76,27 @@ function mostrarAjuda() {
   );
 }
 
+/* Cria os gatilhos automáticos para atualização dos painéis. */
+function criarGatilhos() {
+  var ss = database_();
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    var h = t.getHandlerFunction();
+    if (h === 'atualizarPainelVagas' || h === 'aoEditarVagas') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(5).create();
+  ScriptApp.newTrigger('aoEditarVagas').forSpreadsheet(ss).onEdit().create();
+}
+
+/* Cria os gatilhos para sincronização com o Supabase. */
+function criarGatilhosSupabase() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    var f = t.getHandlerFunction();
+    if (f === 'sincronizarSupabase' || f === 'aoEditarPlanilha') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('sincronizarSupabase').timeBased().everyMinutes(1).create();
+  ScriptApp.newTrigger('aoEditarPlanilha').forSpreadsheet(database_()).onChange().create();
+}
+
 /* Ao editar a aba Vagas, atualiza os painéis automaticamente. */
 function aoEditarVagas(e) {
   var nome = '';
