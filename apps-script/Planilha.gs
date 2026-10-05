@@ -11,13 +11,12 @@ var HEADERS = {
   /* A aba Vagas nao entra aqui: ela e montada a mao e o script so preenche Inscritos e Disponiveis. */
   Inscricoes: ['Data/Hora','Evento','Nome','CPF','Telefone','E-mail','Funcao','NTE','Observacoes','InscricaoID','Status','EventoID','FuncaoID','GrupoVagas','ChaveRequisicao','DadosRequisicao'],
 };
-/* Prazo acordado: os dois eventos encerram em 05/10 as 23:59 (America/Bahia).
-   O segundo 59 mantem o minuto 23:59 inteiro dentro do prazo.
+/* Prazo acordado: os dois eventos encerram em 06/10 as 15:00 (America/Bahia).
    Abertura fica em branco de proposito: preencha-a e mude Status para ABERTO ao liberar. */
 /* LimiteTotal 250, o TOTAL de cada tabela da aba Vagas e a soma exata das cotas do evento. */
 var EVENTOS_PADRAO = [
-  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-05T23:59:59-03:00',250,1],
-  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-05T23:59:59-03:00',250,1]
+  ['ept','EPT','2026-10-07','','','RASCUNHO','','2026-10-06T15:00:00-03:00',250,1],
+  ['eja','EJA','2026-10-08','','','RASCUNHO','','2026-10-06T15:00:00-03:00',250,1]
 ];
 /* Colunas acrescentadas depois da primeira versao: ausentes em planilhas antigas, lidas como vazias. */
 var COLUNAS_OPCIONAIS = { Funcoes: ['Setor'], Inscricoes: ['Observacoes'] };
@@ -44,7 +43,7 @@ function table_(name) {
 }
 function number_(v) { return String(v).trim() === '' ? NaN : Number(v); }
 /* Abertura e Encerramento sao texto ISO, mas basta o Sheets converter a celula em data para
-   getDisplayValues devolver "05/10/2026 23:59:59". Sem fuso, o evento reprovaria em silencio e
+   getDisplayValues devolver "06/10/2026 15:00:00". Sem fuso, o evento reprovaria em silencio e
    ficaria FECHADO sem explicacao, entao aceitamos tambem o formato exibido. -03:00 e fixo:
    o manifesto prende o projeto a America/Bahia, que nao tem horario de verao. */
 function instante_(v) {

@@ -8,7 +8,7 @@ Fonte principal: `index.html`, `background.webp` e `brasao_estado.png` do reposi
 | Inter, azul #1a3a8a, vermelho #d42b2b, raio de 8 px | Tokens originais | Azul para títulos/rótulos e vermelho para ação principal |
 | Fotografia e assinatura institucional | Arquivos do repositório | Recursos locais, sem URL temporária de imagem |
 | Um site por evento, sem tela de escolha | Pedido do usuário | `EVENTO` na build fixa evento, cor, título e sigla; quem abre já cai no formulário do seu evento |
-| Contador regressivo até o prazo | Pedido do usuário | Os dois eventos até 05/10, 23:59: contador na tela de escolha e acima do formulário, prazo no cartão, dígitos em vermelho nas últimas 24 h |
+| Contador regressivo até o prazo | Pedido do usuário | Os dois eventos até 06/10, 15h: contador na tela de escolha e acima do formulário, prazo no cartão, dígitos em vermelho nas últimas 24 h |
 | Tom preto como estado neutro | Decorrência | Sem tela de escolha, cada site nasce na cor do seu evento; o preto permanece como reserva quando `data-theme` falta |
 | Cor por evento: EPT azul, EJA vermelho | Pedido do usuário | Tokens trocados por `data-theme` no `<html>`: painel esquerdo, títulos, rótulos, avisos, foco e botão de ação |
 | Tela de escolha: neutra com cor só nos cartões | Decorrência | Sobre o preto, cada cartão mostra a sigla e a seta na cor do seu evento, antecipando o tema |
