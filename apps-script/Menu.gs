@@ -1,6 +1,100 @@
-/* Projeto dividido em arquivos curtos de proposito: o editor do Apps Script trunca
-   colagem longa. Todos compartilham o mesmo escopo global, a ordem nao importa. */
-/* Menu da planilha: preparar estrutura, atualizar paineis, gatilho e segredo. */
+/* Menu simplificado: apenas 3 opções essenciais.
+   Tudo mais é automático - editar a planilha já dispara a sincronização. */
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Inscrições')
+    .addItem('⚙️ Configurar (primeira vez)', 'configurarTudo')
+    .addItem('🔄 Sincronizar agora', 'sincronizarAgora')
+    .addItem('❓ Ajuda', 'mostrarAjuda')
+    .addToUi();
+}
+
+/* Configuração inicial: prepara abas, cria gatilhos e configura Supabase.
+   Rodar apenas uma vez na primeira vez. */
+function configurarTudo() {
+  var ui = SpreadsheetApp.getUi();
+  var resposta = ui.alert(
+    'Configuração inicial',
+    'Isso vai preparar as abas e ativar a sincronização automática.\n\n' +
+    'Seus dados existentes serão preservados.\n\n' +
+    'Continuar?',
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (resposta !== ui.Button.YES) return;
+  
+  // 1. Prepara as abas (preserva dados existentes)
+  prepararPlanilha();
+  
+  // 2. Cria os gatilhos automáticos
+  criarGatilhos();
+  criarGatilhosSupabase();
+  
+  // 3. Gera o segredo se não existir
+  mostrarSegredo();
+  
+  // 4. Sincroniza uma primeira vez
+  sincronizarSupabase();
+  
+  ui.alert(
+    'Configuração concluída!',
+    'A sincronização automática está ativa.\n\n' +
+    'Agora é só editar a planilha - tudo atualiza sozinho:\n' +
+    '• Editar aba "Vagas" → atualiza monitoramento e formulário\n' +
+    '• Editar aba "Inscricoes" → atualiza vagas e monitoramento\n' +
+    '• Editar aba "Eventos" → atualiza datas e status\n\n' +
+    'Se precisar forçar uma sincronização, use "Sincronizar agora" no menu.',
+    ui.ButtonSet.OK
+  );
+}
+
+/* Sincronização manual: força uma sincronização completa. */
+function sincronizarAgora() {
+  var ui = SpreadsheetApp.getUi();
+  ui.alert('Sincronizando...', 'Aguarde um momento.', ui.ButtonSet.OK);
+  
+  try {
+    sincronizarSupabase();
+    ui.alert('Concluído!', 'Sincronização finalizada com sucesso.', ui.ButtonSet.OK);
+  } catch (erro) {
+    ui.alert('Erro', 'Falha na sincronização: ' + erro.message, ui.ButtonSet.OK);
+  }
+}
+
+/* Ajuda: mostra como funciona. */
+function mostrarAjuda() {
+  SpreadsheetApp.getUi().alert(
+    'Como funciona',
+    'SINCRONIZAÇÃO AUTOMÁTICA\n\n' +
+    '• Editar aba "Vagas" → atualiza monitoramento e formulário\n' +
+    '• Editar aba "Inscricoes" → atualiza vagas e monitoramento\n' +
+    '• Editar aba "Eventos" → atualiza datas e status\n' +
+    '• Editar aba "Funcoes" → atualiza limites\n\n' +
+    'TUDO ATUALIZA SOZINHO - não precisa clicar em nada!\n\n' +
+    'Se algo não atualizar, use "Sincronizar agora" no menu.',
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
+}
+
+/* Ao editar a aba Vagas, atualiza os painéis automaticamente. */
+function aoEditarVagas(e) {
+  var nome = '';
+  try { nome = e && e.range ? e.range.getSheet().getName() : ''; } catch (_) { nome = ''; }
+  if (nome !== 'Vagas') return;
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('PAINEL_EM_ATUALIZACAO') === 'SIM') return;
+  props.setProperty('PAINEL_EM_ATUALIZACAO', 'SIM');
+  try { atualizarPainelVagas(); } finally { props.deleteProperty('PAINEL_EM_ATUALIZACAO'); }
+}
+
+/* Atualiza os painéis de vagas e monitoramento. */
+function atualizarPainelVagas() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try { var c = config_(), r = registrations_(); painelVagas_(c, r); monitoramento_(c, r); } finally { lock.releaseLock(); }
+}
+
+/* Prepara as abas (preserva dados existentes). */
 function prepararPlanilha() {
   var ss = database_(), criadas = [], semDados = [];
   Object.keys(HEADERS).forEach(function (name) {
@@ -14,8 +108,6 @@ function prepararPlanilha() {
     if (name === 'Eventos') {
       sheet.getRange(2,1,EVENTOS_PADRAO.length,10).setNumberFormat('@').setValues(EVENTOS_PADRAO);
     }
-    // Catalogo.gs tambem e opcional: sem ele a aba nasce so com o cabecalho e as cotas sao
-    // preenchidas a mao ou coladas. O site le tudo da planilha, entao nada disso o afeta.
     if (name === 'Funcoes' && typeof CATALOGO_FUNCOES !== 'undefined' && CATALOGO_FUNCOES.length) {
       var roles = [];
       ['ept','eja'].forEach(function (id) { CATALOGO_FUNCOES.forEach(function (f) {
@@ -24,8 +116,6 @@ function prepararPlanilha() {
       }); });
       sheet.getRange(2,1,roles.length,9).setValues(roles);
     }
-    // Municipios.gs e opcional: sem ele a aba nasce so com o cabecalho, e o site nao usa
-    // municipio enquanto nao houver funcao do tipo MUNICIPAL.
     if (name === 'MunicipiosNTE' && typeof CATALOGO_MUNICIPIOS !== 'undefined' && CATALOGO_MUNICIPIOS.length) {
       sheet.getRange(2,1,CATALOGO_MUNICIPIOS.length,2).setValues(CATALOGO_MUNICIPIOS.map(function (m) { return [m.nome,m.nte]; }));
     }
@@ -35,59 +125,16 @@ function prepararPlanilha() {
   Logger.log(criadas.length ? 'Abas criadas: ' + criadas.join(', ') : 'Nada a criar: as abas ja existiam.');
   if (semDados.length) Logger.log('Criadas so com o cabecalho: ' + semDados.join('; '));
 }
-function montarMonitoramento() {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(15000);
-  try { monitoramento_(config_(), registrations_()); } finally { lock.releaseLock(); }
-}
-function atualizarPainelVagas() {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(15000);
-  try { var c = config_(), r = registrations_(); painelVagas_(c, r); monitoramento_(c, r); } finally { lock.releaseLock(); }
-}
-/* Ao editar a aba Vagas (o painel montado a mao), remonta os paineis na hora: o Limite
-digitado passa a valer no Monitoramento e em Disponiveis sem esperar o gatilho de cinco
-minutos. A marca PAINEL_EM_ATUALIZACAO impede que as escritas do proprio script disparem
-uma nova rodada em cima da atualizacao em andamento. */
-function aoEditarVagas(e) {
-  var nome = '';
-  try { nome = e && e.range ? e.range.getSheet().getName() : ''; } catch (_) { nome = ''; }
-  if (nome !== 'Vagas') return;
-  var props = PropertiesService.getScriptProperties();
-  if (props.getProperty('PAINEL_EM_ATUALIZACAO') === 'SIM') return;
-  props.setProperty('PAINEL_EM_ATUALIZACAO', 'SIM');
-  try { atualizarPainelVagas(); } finally { props.deleteProperty('PAINEL_EM_ATUALIZACAO'); }
-}
-/* Gatilho de cinco minutos como rede de seguranca; a atualizacao imediata acontece a cada
-   inscricao e na edicao da aba Vagas, pelo gatilho de edicao instalado aqui tambem. */
-function criarGatilhos() {
-  var ss = database_();
-  ScriptApp.getProjectTriggers().forEach(function (t) {
-    var h = t.getHandlerFunction();
-    if (h === 'atualizarPainelVagas' || h === 'aoEditarVagas') ScriptApp.deleteTrigger(t);
-  });
-  // Cinco minutos: a atualizacao que importa acontece na propria inscricao; este gatilho so
-  // cobre edicao manual da planilha, e de minuto em minuto ele competia com o site.
-  ScriptApp.newTrigger('atualizarPainelVagas').timeBased().everyMinutes(5).create();
-  ScriptApp.newTrigger('aoEditarVagas').forSpreadsheet(ss).onEdit().create();
-}
-/* Gera o segredo da integracao e ja grava em API_SECRET, para nao depender de terminal.
-   Rode pelo editor do Apps Script (Executar) e leia o valor no registro de execucao.
-   Nao vira item de menu de proposito: quem abre a planilha nao deveria ver o segredo. */
+
+/* Gera o segredo da integração se não existir. */
 function mostrarSegredo() {
   var props = PropertiesService.getScriptProperties();
   var segredo = props.getProperty('API_SECRET');
   var novo = !segredo || segredo.length < 32;
   if (novo) {
-    // Dois UUID sem hifen: 64 caracteres hexadecimais de origem aleatoria.
     segredo = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
     props.setProperty('API_SECRET', segredo);
   }
-  Logger.log((novo ? 'Segredo criado e salvo em API_SECRET.' : 'API_SECRET ja existia; reaproveitando.') +
-    ' Copie o valor abaixo para APPS_SCRIPT_SECRET na Vercel:');
-  Logger.log(segredo);
+  Logger.log((novo ? 'Segredo criado e salvo em API_SECRET.' : 'API_SECRET ja existia; reaproveitando.'));
   return segredo;
-}
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Inscrições EPT / EJA').addItem('Preparar estrutura (preserva dados)', 'prepararPlanilha').addItem('Atualizar painel de vagas', 'atualizarPainelVagas').addItem('Montar painel de monitoramento', 'montarMonitoramento').addItem('Ativar atualizacao automatica', 'criarGatilhos').addSeparator().addItem('Configurar Supabase', 'configurarSupabase').addItem('Sincronizar Supabase agora', 'sincronizarSupabase').addItem('Importar inscricoes ja existentes', 'importarInscricoesParaSupabase').addItem('Enviar inscricoes da planilha para o Supabase', 'enviarInscricoesParaSupabase').addItem('Ativar sincronizacao com Supabase', 'criarGatilhosSupabase').addItem('Recarregar inscricoes do Supabase', 'recarregarInscricoesDoSupabase').addItem('Remover inscricoes ausentes da aba', 'removerAusentesAgora').addToUi();
 }
