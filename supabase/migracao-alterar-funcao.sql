@@ -91,3 +91,22 @@ begin
 end; $$;
 
 grant execute on function alterar_funcao_inscricao(text, text, text) to anon, authenticated;
+
+-- Lista as funções atuais de uma lista de inscrições.
+-- Usada pelo Apps Script para detectar mudanças de função na planilha.
+create or replace function listar_funcoes_inscricoes(
+  p_secret text,
+  p_protocolos text[]
+) returns table (protocolo text, funcao_id text)
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_secret is null or p_secret <> (select valor from app_config where chave = 'sync_secret') then
+    return;
+  end if;
+  return query
+    select i.protocolo, i.funcao_id
+    from inscricoes i
+    where i.protocolo = any(p_protocolos);
+end; $$;
+
+grant execute on function listar_funcoes_inscricoes(text, text[]) to anon, authenticated;

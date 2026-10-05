@@ -128,11 +128,13 @@ function verificarFuncoesAlteradas_(registros) {
   var alteradas = 0;
   var protocolos = registros.map(function (r) { return r.protocolo; }).filter(function (p) { return p; });
   
-  // Busca as inscrições atuais no Supabase para comparar
+  if (!protocolos.length) return 0;
+  
+  // Busca as funções atuais no Supabase usando a função listar_funcoes_inscricoes
   for (var i = 0; i < protocolos.length; i += 100) {
     var lote = protocolos.slice(i, i + 100);
-    var filtro = lote.map(function (p) { return '"protocolo":"' + p + '"'; }).join(',');
-    var resultado = supabaseFetch_('/inscricoes?protocolo=in.(' + lote.join(',') + ')&select=protocolo,funcao_id', { method: 'get' });
+    var resultado = supabaseFetch_('/rpc/listar_funcoes_inscricoes', { method: 'post',
+      body: { p_secret: segredoSinc_(), p_protocolos: lote } });
     
     if (!resultado || !Array.isArray(resultado)) continue;
     
