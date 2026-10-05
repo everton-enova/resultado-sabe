@@ -183,10 +183,77 @@ function sincronizarSupabase() {
   } finally { lock.releaseLock(); }
 }
 
+/* Sincroniza a aba Vagas → Funcoes → Supabase.
+   Permite editar os limites na aba Vagas (painel visual) e ter tudo refletido
+   no formulário automaticamente. */
+function sincronizarVagasParaFuncoes_() {
+  var sheetVagas = database_().getSheetByName('Vagas');
+  var sheetFuncoes = database_().getSheetByName('Funcoes');
+  if (!sheetVagas || !sheetFuncoes) return { success: false, message: 'Aba Vagas ou Funcoes ausente' };
+  
+  var config = config_();
+  var limites = limitesVagas_(config);
+  if (!Object.keys(limites).length) return { success: false, message: 'Nenhum limite encontrado na aba Vagas' };
+  
+  // Mapeia cada rótulo da aba Vagas para as funções correspondentes na aba Funcoes
+  var valoresFuncoes = sheetFuncoes.getDataRange().getDisplayValues();
+  var headerFuncoes = valoresFuncoes.shift();
+  var colLimite = headerFuncoes.indexOf('Limite');
+  var colNome = headerFuncoes.indexOf('Nome');
+  var colSetor = headerFuncoes.indexOf('Setor');
+  var colEvento = headerFuncoes.indexOf('EventoID');
+  var colTipo = headerFuncoes.indexOf('Tipo');
+  var colNTE = headerFuncoes.indexOf('NTE');
+  
+  if (colLimite < 0 || colNome < 0) return { success: false, message: 'Colunas Limite ou Nome ausentes na aba Funcoes' };
+  
+  var atualizadas = 0;
+  for (var i = 0; i < valoresFuncoes.length; i++) {
+    var linha = valoresFuncoes[i];
+    var eventoId = linha[colEvento];
+    var nome = linha[colNome];
+    var setor = colSetor >= 0 ? linha[colSetor] : '';
+    var tipo = colTipo >= 0 ? linha[colTipo] : '';
+    var nte = colNTE >= 0 ? linha[colNTE] : '';
+    
+    var evento = config.eventos.filter(function (e) { return e.id === eventoId; })[0];
+    if (!evento) continue;
+    
+    var porEvento = limites[evento.id] || {};
+    var limite = null;
+    
+    // Tenta encontrar o limite pelo rótulo
+    if (tipo === 'NTE') {
+      // Agrega por papel (Diretor, Ponto Focal, Coordenador)
+      var papel = normal_(nome);
+      if (papel === 'diretor(a)') limite = porEvento['diretores dos nte'];
+      else if (papel === 'ponto focal do sabe') limite = porEvento['pontos focais do sabe nos nte'];
+      else if (papel === 'coordenador(a) pedagogico(a)') limite = porEvento['coordenadores pedagogicos dos nte'];
+    } else {
+      // Tenta direto pelo nome ou setor/nome
+      var rotulo = setor ? (setor + '/' + nome) : nome;
+      limite = porEvento[normal_(rotulo)] || porEvento[normal_(nome)];
+    }
+    
+    if (typeof limite === 'number' && limite !== Number(linha[colLimite])) {
+      sheetFuncoes.getRange(i + 2, colLimite + 1).setValue(limite);
+      atualizadas++;
+    }
+  }
+  
+  if (atualizadas > 0) {
+    SpreadsheetApp.flush();
+    Logger.log('Vagas → Funcoes: ' + atualizadas + ' limite(s) atualizado(s)');
+  }
+  
+  return { success: true, atualizadas: atualizadas };
+}
+
 /* Dispara quando alguém edita a planilha: as vagas chegam ao Supabase em segundos
    e os painéis (Vagas/Monitoramento) são atualizados na hora. */
 function aoEditarPlanilha() {
   try {
+    sincronizarVagasParaFuncoes_();
     sincronizarConfigParaSupabase();
     var c = config_(), r = registrations_();
     painelVagas_(c, r);
