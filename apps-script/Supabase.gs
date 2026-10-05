@@ -183,9 +183,15 @@ function sincronizarSupabase() {
   } finally { lock.releaseLock(); }
 }
 
-/* Dispara quando alguém edita a planilha: as vagas chegam ao Supabase em segundos. */
+/* Dispara quando alguém edita a planilha: as vagas chegam ao Supabase em segundos
+   e os painéis (Vagas/Monitoramento) são atualizados na hora. */
 function aoEditarPlanilha() {
-  try { sincronizarConfigParaSupabase(); } catch (erro) { Logger.log('Sincronização na edição falhou: ' + erro); }
+  try {
+    sincronizarConfigParaSupabase();
+    var c = config_(), r = registrations_();
+    painelVagas_(c, r);
+    monitoramento_(c, r);
+  } catch (erro) { Logger.log('Sincronização na edição falhou: ' + erro); }
 }
 
 /* Traz de volta para a aba as inscricoes confirmadas que so existem no banco. Use quando a
