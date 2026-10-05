@@ -98,20 +98,64 @@ function anotarInscricoesPendentes_() {
 }
 
 /* Espelha a aba Inscricoes de volta para o Supabase: linhas criadas à mão e ajustes de
-   nome/telefone/e-mail/status feitos na planilha. Casa pelo protocolo (InscricaoID). */
+   nome/telefone/e-mail/status feitos na planilha. Casa pelo protocolo (InscricaoID).
+   Também detecta mudanças de função e chama alterar_funcao_inscricao. */
 function sincronizarInscricoesPlanilha_() {
   var registros = table_('Inscricoes').map(function (r) { return {
     protocolo: r.InscricaoID, evento_id: r.EventoID, nome: r.Nome, cpf: r.CPF, telefone: r.Telefone,
     email: r['E-mail'], funcao_id: r.FuncaoID, funcao_nome: r.Funcao, municipio: r.Municipio || '',
     grupo_vagas: r.GrupoVagas, status: r.Status, chave: r.ChaveRequisicao, canonical: r.DadosRequisicao, nte: r.NTE }; });
-  var total = { inseridos: 0, atualizados: 0, protocolos: [] };
+  var total = { inseridos: 0, atualizados: 0, funcoes_alteradas: 0, protocolos: [] };
   registros.forEach(function (r) { var p = String(r.protocolo || '').trim(); if (p) total.protocolos.push(p); });
+  
+  // Primeiro, sincroniza as inscrições normais (nome, telefone, email, status)
   for (var i = 0; i < registros.length; i += 200) {
     var resultado = supabaseFetch_('/rpc/sincronizar_inscricoes', { method: 'post',
       body: { p_secret: segredoSinc_(), p_registros: registros.slice(i, i + 200) } });
     if (resultado && resultado.success) { total.inseridos += resultado.inseridos || 0; total.atualizados += resultado.atualizados || 0; }
   }
+  
+  // Depois, verifica se alguma função foi alterada manualmente
+  var funcoesAlteradas = verificarFuncoesAlteradas_(registros);
+  total.funcoes_alteradas = funcoesAlteradas;
+  
   return total;
+}
+
+/* Verifica se alguma inscrição teve a função alterada manualmente na planilha.
+   Compara o funcao_id da planilha com o que está no Supabase. */
+function verificarFuncoesAlteradas_(registros) {
+  var alteradas = 0;
+  var protocolos = registros.map(function (r) { return r.protocolo; }).filter(function (p) { return p; });
+  
+  // Busca as inscrições atuais no Supabase para comparar
+  for (var i = 0; i < protocolos.length; i += 100) {
+    var lote = protocolos.slice(i, i + 100);
+    var filtro = lote.map(function (p) { return '"protocolo":"' + p + '"'; }).join(',');
+    var resultado = supabaseFetch_('/inscricoes?protocolo=in.(' + lote.join(',') + ')&select=protocolo,funcao_id', { method: 'get' });
+    
+    if (!resultado || !Array.isArray(resultado)) continue;
+    
+    var porProtocolo = {};
+    resultado.forEach(function (r) { porProtocolo[r.protocolo] = r.funcao_id; });
+    
+    registros.forEach(function (r) {
+      var funcaoSupabase = porProtocolo[r.protocolo];
+      if (funcaoSupabase && funcaoSupabase !== r.funcao_id) {
+        // Função foi alterada manualmente!
+        var resultadoAlteracao = supabaseFetch_('/rpc/alterar_funcao_inscricao', { method: 'post',
+          body: { p_secret: segredoSinc_(), p_protocolo: r.protocolo, p_nova_funcao_id: r.funcao_id } });
+        if (resultadoAlteracao && resultadoAlteracao.success) {
+          alteradas++;
+          Logger.log('Função alterada: ' + r.protocolo + ' → ' + r.funcao_id);
+        } else {
+          Logger.log('Erro ao alterar função: ' + r.protocolo + ' - ' + JSON.stringify(resultadoAlteracao));
+        }
+      }
+    });
+  }
+  
+  return alteradas;
 }
 
 /* Apagar a linha na planilha vale como cancelamento. Quem decide e o banco: mandamos os
@@ -250,11 +294,28 @@ function sincronizarVagasParaFuncoes_() {
 }
 
 /* Dispara quando alguém edita a planilha: as vagas chegam ao Supabase em segundos
-   e os painéis (Vagas/Monitoramento) são atualizados na hora. */
-function aoEditarPlanilha() {
+   e os painéis (Vagas/Monitoramento) são atualizados na hora.
+   Se a edição foi na aba Inscricoes, sincroniza as alterações para o Supabase
+   (status, nome, telefone, e-mail) e atualiza os painéis. */
+function aoEditarPlanilha(e) {
   try {
+    // Detecta se a edição foi na aba Inscricoes
+    var abaEditada = '';
+    if (e && e.source) {
+      var sheet = e.source.getActiveSheet();
+      if (sheet) abaEditada = sheet.getName();
+    }
+    
+    // Sempre sincroniza Vagas → Funcoes → Supabase
     sincronizarVagasParaFuncoes_();
     sincronizarConfigParaSupabase();
+    
+    // Se editou a aba Inscricoes, sincroniza as inscrições para o Supabase
+    if (abaEditada === 'Inscricoes') {
+      sincronizarInscricoesPlanilha_();
+    }
+    
+    // Atualiza os painéis
     var c = config_(), r = registrations_();
     painelVagas_(c, r);
     monitoramento_(c, r);
